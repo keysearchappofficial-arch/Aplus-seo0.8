@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>文章｜Aplus AI SEO</title>
+  <meta name="description" content="AI SEO 文章內容頁面。" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Aplus AI SEO" />
+  <meta property="og:locale" content="zh_TW" />
+  <meta property="og:title" content="" />
+  <meta property="og:description" content="" />
+  <meta property="og:url" content="" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="" />
+  <meta name="twitter:description" content="" />
+
+  <link rel="stylesheet" href="./css/variables.css" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+  <link rel="stylesheet" href="./css/pages/article.css" />
+
+  <style>
+    .article-back-link {
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 12px;
+      color: #64748b;
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    .article-back-link:hover {
+      color: #0f172a;
+    }
+
+    .article-content h2 {
+      margin: 28px 0 12px;
+      font-size: 30px;
+      line-height: 1.4;
+      color: #0f172a;
+    }
+
+    .article-content h3 {
+      margin: 20px 0 10px;
+      font-size: 22px;
+      line-height: 1.5;
+      color: #0f172a;
+    }
+
+    .article-content p {
+      margin: 0 0 16px;
+      line-height: 1.95;
+      color: #334155;
+    }
+
+    .article-content ul {
+      margin: 0 0 18px;
+      padding-left: 22px;
+      color: #334155;
+      line-height: 1.9;
+    }
+
+    .article-content li {
+      margin-bottom: 8px;
+    }
+
+    .article-content strong {
+      color: #0f172a;
+    }
+  </style>
+
+  <script type="application/ld+json" id="article-schema"></script>
+</head>
+
+<body>
+  <div id="site-header"></div>
+
+  <main class="section-shell">
+    <div class="container article">
+
+      <div class="article-header">
+        <a href="./blog.html" class="article-back-link">← 返回文章專欄</a>
+        <span class="article-label">Article</span>
+        <h1 id="article-title"></h1>
+      </div>
+
+      <div id="article-meta" style="margin-top:8px;color:#64748b;font-size:13px;">
+        有效瀏覽：<span id="article-views">--</span>
+      </div>
+
+      <div id="article-content" class="article-content"></div>
+
+      <section class="article-hook">
+        <strong>你現在看到這篇文章，本身就是 SEO 的效果。</strong>
+        <p>
+          當網站持續累積內容，就有機會被搜尋引擎收錄與排名，
+          進而把流量帶進你的網站與服務頁。
+        </p>
+      </section>
+
+      <section class="article-related">
+        <h3>延伸閱讀</h3>
+        <ul id="related-articles"></ul>
+      </section>
+
+      <section class="article-cta">
+        <h3>想讓你的網站也透過 SEO 持續帶來客戶？</h3>
+        <p>
+          我們可以協助你建立 AI SEO 內容系統，從主題規劃、文章生成、
+          發佈到名單轉換，形成完整的內容獲客流程。
+        </p>
+      </section>
+
+      <form id="lead-form" class="lead-form">
+        <div class="lead-form__grid">
+          <input type="text" name="name" placeholder="姓名" required />
+          <input type="text" name="contact" placeholder="Email 或聯絡方式" required />
+        </div>
+
+        <div class="lead-form__grid">
+          <input type="text" name="website" placeholder="你的網站（選填）" />
+          <select name="status">
+            <option value="">目前狀況（選填）</option>
+            <option value="沒有流量">沒有流量</option>
+            <option value="有網站但很少更新">有網站但很少更新</option>
+            <option value="主要靠廣告">主要靠廣告</option>
+            <option value="想做SEO但不會規劃">想做 SEO 但不會規劃</option>
+          </select>
+        </div>
+
+        <textarea
+          name="message"
+          placeholder="請簡單描述你的產業、網站現況或想達成的目標"
+        ></textarea>
+
+        <button type="submit" class="btn btn--primary">取得免費 SEO 評估</button>
+      </form>
+
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <div id="lead-success-modal" class="modal hidden">
+    <div class="modal__overlay"></div>
+
+    <div class="modal__card">
+      <h3>已成功送出 🎉</h3>
+
+      <p>
+        我們已收到你的 SEO 評估需求，<br />
+        將盡快與你聯繫。
+      </p>
+
+      <div class="modal__actions">
+        <button id="modal-close" class="btn btn--ghost">關閉</button>
+        <a href="https://line.me/..." class="btn btn--primary">加 LINE 諮詢</a>
+        <a href="./index.html" class="btn btn--primary">回首頁</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./admin/js/supabase.js"></script>
+  <script src="./admin/js/article-store.js"></script>
+  <script src="./assets/js/layout.js"></script>
+
+  <script>
+    const SITE_ORIGIN = "https://www.keysearch-app.com";
+
+    function getSlug() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("slug");
+    }
+
+    function getSource() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("source") || "direct";
+    }
+
+    function getVisitorId() {
+      let visitorId = localStorage.getItem("aplus_visitor_id");
+
+      if (!visitorId) {
+        visitorId =
+          "v_" +
+          Math.random().toString(36).slice(2) +
+          "_" +
+          Date.now().toString(36);
+
+        localStorage.setItem("aplus_visitor_id", visitorId);
+      }
+
+      return visitorId;
+    }
+
+    function shouldCountView(slug, cooldownMs = 5 * 60 * 1000) {
+      const key = `aplus_viewed_${slug}`;
+      const lastViewedAt = Number(localStorage.getItem(key) || 0);
+      const now = Date.now();
+
+      if (now - lastViewedAt < cooldownMs) {
+        return false;
+      }
+
+      localStorage.setItem(key, String(now));
+      return true;
+    }
+
+    async function increaseAndFetchViews(slug) {
+      try {
+        const shouldIncrease = shouldCountView(slug);
+        const visitorId = getVisitorId();
+
+        const res = await fetch(`http://localhost:3000/api/articles/view/${slug}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            visitorId,
+            shouldIncrease
+          })
+        });
+
+        if (!res.ok) return 0;
+
+        const data = await res.json();
+        return data.views || 0;
+      } catch (error) {
+        console.error("取得 PV 失敗", error);
+        return 0;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatInline(text = "") {
+      return escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    }
+
+    function renderArticleBody(content = "") {
+      const lines = String(content)
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      let html = "";
+      let inList = false;
+
+      for (const line of lines) {
+        if (line.startsWith("## ")) {
+          if (inList) {
+            html += "</ul>";
+            inList = false;
+          }
+          html += `<h2>${formatInline(line.replace(/^## /, ""))}</h2>`;
+          continue;
+        }
+
+        if (line.startsWith("### ")) {
+          if (inList) {
+            html += "</ul>";
+            inList = false;
+          }
+          html += `<h3>${formatInline(line.replace(/^### /, ""))}</h3>`;
+          continue;
+        }
+
+        if (line.startsWith("- ") || line.startsWith("* ")) {
+          if (!inList) {
+            html += "<ul>";
+            inList = true;
+          }
+          html += `<li>${formatInline(line.replace(/^[-*] /, ""))}</li>`;
+          continue;
+        }
+
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+
+        html += `<p>${formatInline(line)}</p>`;
+      }
+
+      if (inList) {
+        html += "</ul>";
+      }
+
+      return html;
+    }
+
+    async function loadArticle() {
+      const supabase = window.supabaseClient;
+      if (!supabase) {
+        throw new Error("Supabase client 未載入");
+      }
+
+      const slug = getSlug();
+
+      const { data, error } = await supabase
+        .from("articles")
+        .select("*")
+        .eq("slug", slug)
+        .single();
+
+      if (error) throw error;
+
+      return data;
+    }
+
+    function setSEO(article) {
+      const pageTitle = article.seo_title || article.title || "文章｜Aplus AI SEO";
+      const pageDescription = article.seo_description || article.summary || "";
+      const pageUrl = `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
+
+      document.title = pageTitle;
+
+      const metaDescription = document.querySelector("meta[name='description']");
+      if (metaDescription) {
+        metaDescription.setAttribute("content", pageDescription);
+      }
+
+      const robots = document.querySelector("meta[name='robots']");
+      if (robots) {
+        robots.setAttribute("content", "index, follow, max-image-preview:large");
+      }
+
+      const canonical = document.querySelector("link[rel='canonical']");
+      if (canonical) {
+        canonical.setAttribute("href", pageUrl);
+      }
+
+      const ogTitle = document.querySelector("meta[property='og:title']");
+      if (ogTitle) {
+        ogTitle.setAttribute("content", pageTitle);
+      }
+
+      const ogDescription = document.querySelector("meta[property='og:description']");
+      if (ogDescription) {
+        ogDescription.setAttribute("content", pageDescription);
+      }
+
+      const ogUrl = document.querySelector("meta[property='og:url']");
+      if (ogUrl) {
+        ogUrl.setAttribute("content", pageUrl);
+      }
+
+      const twitterTitle = document.querySelector("meta[name='twitter:title']");
+      if (twitterTitle) {
+        twitterTitle.setAttribute("content", pageTitle);
+      }
+
+      const twitterDescription = document.querySelector("meta[name='twitter:description']");
+      if (twitterDescription) {
+        twitterDescription.setAttribute("content", pageDescription);
+      }
+    }
+
+    function injectArticleSchema(article) {
+      const schemaEl = document.getElementById("article-schema");
+      if (!schemaEl || !article) return;
+
+      const pageUrl = `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
+      const publishedTime = article.published_at || article.created_at || "";
+      const modifiedTime = article.updated_at || publishedTime;
+
+      const schema = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": article.title || "未命名文章",
+        "description": article.seo_description || article.summary || "",
+        "url": pageUrl,
+        "datePublished": publishedTime,
+        "dateModified": modifiedTime,
+        "author": {
+          "@type": "Organization",
+          "name": "Aplus AI SEO"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Aplus AI SEO"
+        },
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": pageUrl
+        },
+        "inLanguage": "zh-Hant"
+      };
+
+      schemaEl.textContent = JSON.stringify(schema);
+    }
+
+    async function renderArticle() {
+      const titleEl = document.getElementById("article-title");
+      const contentEl = document.getElementById("article-content");
+
+      try {
+        const article = await loadArticle();
+
+        if (!article) {
+          titleEl.innerText = "找不到文章";
+          contentEl.innerHTML = "<p>目前找不到這篇文章內容。</p>";
+          return null;
+        }
+
+        titleEl.innerText = article.title || "未命名文章";
+        contentEl.innerHTML = article.content
+          ? renderArticleBody(article.content)
+          : "<p>目前尚無內容。</p>";
+
+        setSEO(article);
+        injectArticleSchema(article);
+        return article;
+      } catch (error) {
+        console.error("載入文章失敗：", error);
+        titleEl.innerText = "載入失敗";
+        contentEl.innerHTML = `<p>文章載入失敗：${escapeHtml(error.message)}</p>`;
+        return null;
+      }
+    }
+
+    async function trackPageView(article) {
+      if (!article) return;
+
+      try {
+        await ArticleStore.trackEvent({
+          articleId: article.id,
+          eventType: "page_view",
+          source: getSource()
+        });
+      } catch (error) {
+        console.error("記錄 PV 失敗：", error);
+      }
+    }
+
+    function bindForm(article) {
+      const form = document.getElementById("lead-form");
+      if (!form || !article) return;
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+
+        const status = formData.get("status");
+        const website = formData.get("website");
+        const message = formData.get("message");
+
+        const mergedMessage = [
+          website ? `網站：${website}` : "",
+          status ? `目前狀況：${status}` : "",
+          message ? `需求：${message}` : ""
+        ].filter(Boolean).join("\n");
+
+        try {
+          await ArticleStore.createLead({
+            name: formData.get("name"),
+            contactValue: formData.get("contact"),
+            message: mergedMessage,
+            sourceArticleId: article.id,
+            sourceArticleTitle: article.title,
+            sourceChannel: getSource()
+          });
+
+          showLeadSuccessModal();
+          form.reset();
+        } catch (error) {
+          console.error("送出詢問失敗：", error);
+          alert(`送出失敗：${error.message}`);
+        }
+      });
+    }
+
+    function showLeadSuccessModal() {
+      const modal = document.getElementById("lead-success-modal");
+      if (!modal) return;
+
+      modal.classList.remove("hidden");
+
+      const closeBtn = document.getElementById("modal-close");
+
+      function close() {
+        modal.classList.add("hidden");
+      }
+
+      closeBtn?.addEventListener("click", close);
+      modal.querySelector(".modal__overlay")?.addEventListener("click", close);
+    }
+
+    async function renderRelatedArticles(currentSlug) {
+      const articles = await ArticleStore.getArticles();
+
+      const list = articles
+        .filter(a => a.slug !== currentSlug && a.status === "published")
+        .slice(0, 5);
+
+      const el = document.getElementById("related-articles");
+
+      if (!list.length) {
+        el.innerHTML = "<li>目前沒有其他文章</li>";
+        return;
+      }
+
+      el.innerHTML = list.map(a => `
+        <li>
+          <a href="./article.html?slug=${encodeURIComponent(a.slug)}&source=article">
+            ${escapeHtml(a.title)}
+          </a>
+        </li>
+      `).join("");
+    }
+
+    async function initArticlePage() {
+      const article = await renderArticle();
+      if (!article) return;
+
+      const viewsEl = document.getElementById("article-views");
+      const views = await increaseAndFetchViews(article.slug);
+
+      if (viewsEl) {
+        viewsEl.textContent = views;
+      }
+
+      await trackPageView(article);
+      await renderRelatedArticles(article.slug);
+      bindForm(article);
+    }
+
+    initArticlePage();
+  </script>
+
+</body>
+</html>
