@@ -94,6 +94,14 @@
       <div id="article-meta" style="margin-top:8px;color:#64748b;font-size:13px;">
         有效瀏覽：<span id="article-views">--</span>
       </div>
+      
+      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+  <button id="share-facebook" class="btn btn--soft">Facebook</button>
+  <button id="share-linkedin" class="btn btn--soft">LinkedIn</button>
+  <button id="share-x" class="btn btn--soft">X</button>
+  <button id="share-line" class="btn btn--soft">LINE</button>
+  <button id="share-copy" class="btn btn--primary">複製連結</button>
+</div>
 
       <div id="article-content" class="article-content"></div>
 
@@ -173,407 +181,224 @@
   <script src="./assets/js/layout.js"></script>
 
   <script>
-    const SITE_ORIGIN = "https://www.keysearch-app.com";
+const SITE_ORIGIN = "https://www.keysearch-app.com";
 
-    function getSlug() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("slug");
-    }
+let currentArticle = null;
 
-    function getSource() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("source") || "direct";
-    }
+function getSlug() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("slug");
+}
 
-    function getVisitorId() {
-      let visitorId = localStorage.getItem("aplus_visitor_id");
+function getVisitorId() {
+  let visitorId = localStorage.getItem("aplus_visitor_id");
 
-      if (!visitorId) {
-        visitorId =
-          "v_" +
-          Math.random().toString(36).slice(2) +
-          "_" +
-          Date.now().toString(36);
+  if (!visitorId) {
+    visitorId =
+      "v_" +
+      Math.random().toString(36).slice(2) +
+      "_" +
+      Date.now().toString(36);
 
-        localStorage.setItem("aplus_visitor_id", visitorId);
-      }
+    localStorage.setItem("aplus_visitor_id", visitorId);
+  }
 
-      return visitorId;
-    }
+  return visitorId;
+}
 
-    function shouldCountView(slug, cooldownMs = 5 * 60 * 1000) {
-      const key = `aplus_viewed_${slug}`;
-      const lastViewedAt = Number(localStorage.getItem(key) || 0);
-      const now = Date.now();
+function shouldCountView(slug, cooldownMs = 5 * 60 * 1000) {
+  const key = `aplus_viewed_${slug}`;
+  const lastViewedAt = Number(localStorage.getItem(key) || 0);
+  const now = Date.now();
 
-      if (now - lastViewedAt < cooldownMs) {
-        return false;
-      }
+  if (now - lastViewedAt < cooldownMs) return false;
 
-      localStorage.setItem(key, String(now));
-      return true;
-    }
+  localStorage.setItem(key, String(now));
+  return true;
+}
 
-   async function increaseAndFetchViews(article) {
+async function increaseAndFetchViews(article) {
   try {
     const supabase = window.supabaseClient;
     if (!supabase) return 0;
 
-    const slug = article.slug;
-    const visitorId = getVisitorId();
-    const shouldIncrease = shouldCountView(slug);
+    const shouldIncrease = shouldCountView(article.slug);
 
-    // 1. 先拿目前 views
     let currentViews = article.views || 0;
 
-    if (!shouldIncrease) {
-      return currentViews;
-    }
+    if (!shouldIncrease) return currentViews;
 
-    // 2. 更新 views（+1）
-    const { error: updateError } = await supabase
+    const { error } = await supabase
       .from("articles")
       .update({ views: currentViews + 1 })
       .eq("id", article.id);
 
-    if (updateError) throw updateError;
+    if (error) throw error;
 
-    // 3. 記錄 log（可選，但建議）
-    await supabase
-      .from("article_view_logs")
-      .insert({
-        article_id: article.id,
-        visitor_id: visitorId
-      });
+    await supabase.from("article_view_logs").insert({
+      article_id: article.id,
+      visitor_id: getVisitorId()
+    });
 
     return currentViews + 1;
-  } catch (error) {
-    console.error("PV 計算失敗", error);
+  } catch (err) {
+    console.error("PV error", err);
     return article.views || 0;
   }
 }
 
-    function escapeHtml(value) {
-      return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
-    function formatInline(text = "") {
+/* 🔥 內連 + URL + markdown */
+function formatInline(text = "") {
   let escaped = escapeHtml(text);
 
-  // **粗體**
   escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-  // Markdown連結 [文字](url)
+  // markdown link
   escaped = escaped.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" target="_self">$1</a>'
+    '<a href="$2">$1</a>'
   );
 
-  // 純網址轉連結（最重要🔥）
+  // 純網址
   escaped = escaped.replace(
     /(https?:\/\/[^\s]+)/g,
-    '<a href="$1" target="_self">$1</a>'
+    '<a href="$1">$1</a>'
   );
 
   return escaped;
 }
 
-    function renderArticleBody(content = "") {
-      const lines = String(content)
-        .split("\n")
-        .map(line => line.trim())
-        .filter(Boolean);
+function renderArticleBody(content = "") {
+  const lines = String(content).split("\n").map(l => l.trim()).filter(Boolean);
 
-      let html = "";
-      let inList = false;
+  let html = "";
+  let inList = false;
 
-      for (const line of lines) {
-        if (line.startsWith("## ")) {
-          if (inList) {
-            html += "</ul>";
-            inList = false;
-          }
-          html += `<h2>${formatInline(line.replace(/^## /, ""))}</h2>`;
-          continue;
-        }
-
-        if (line.startsWith("### ")) {
-          if (inList) {
-            html += "</ul>";
-            inList = false;
-          }
-          html += `<h3>${formatInline(line.replace(/^### /, ""))}</h3>`;
-          continue;
-        }
-
-        if (line.startsWith("- ") || line.startsWith("* ")) {
-          if (!inList) {
-            html += "<ul>";
-            inList = true;
-          }
-          html += `<li>${formatInline(line.replace(/^[-*] /, ""))}</li>`;
-          continue;
-        }
-
-        if (inList) {
-          html += "</ul>";
-          inList = false;
-        }
-
-        html += `<p>${formatInline(line)}</p>`;
-      }
-
-      if (inList) {
-        html += "</ul>";
-      }
-
-      return html;
+  for (const line of lines) {
+    if (line.startsWith("## ")) {
+      if (inList) html += "</ul>";
+      inList = false;
+      html += `<h2>${formatInline(line.replace("## ", ""))}</h2>`;
+      continue;
     }
 
-    async function loadArticle() {
-      const supabase = window.supabaseClient;
-      if (!supabase) {
-        throw new Error("Supabase client 未載入");
-      }
-
-      const slug = getSlug();
-
-      const { data, error } = await supabase
-        .from("articles")
-        .select("*")
-        .eq("slug", slug)
-        .single();
-
-      if (error) throw error;
-
-      return data;
+    if (line.startsWith("### ")) {
+      if (inList) html += "</ul>";
+      inList = false;
+      html += `<h3>${formatInline(line.replace("### ", ""))}</h3>`;
+      continue;
     }
 
-    function setSEO(article) {
-      const pageTitle = article.seo_title || article.title || "文章｜Aplus AI SEO";
-      const pageDescription = article.seo_description || article.summary || "";
-      const pageUrl = `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
-
-      document.title = pageTitle;
-
-      const metaDescription = document.querySelector("meta[name='description']");
-      if (metaDescription) {
-        metaDescription.setAttribute("content", pageDescription);
-      }
-
-      const robots = document.querySelector("meta[name='robots']");
-      if (robots) {
-        robots.setAttribute("content", "index, follow, max-image-preview:large");
-      }
-
-      const canonical = document.querySelector("link[rel='canonical']");
-      if (canonical) {
-        canonical.setAttribute("href", pageUrl);
-      }
-
-      const ogTitle = document.querySelector("meta[property='og:title']");
-      if (ogTitle) {
-        ogTitle.setAttribute("content", pageTitle);
-      }
-
-      const ogDescription = document.querySelector("meta[property='og:description']");
-      if (ogDescription) {
-        ogDescription.setAttribute("content", pageDescription);
-      }
-
-      const ogUrl = document.querySelector("meta[property='og:url']");
-      if (ogUrl) {
-        ogUrl.setAttribute("content", pageUrl);
-      }
-
-      const twitterTitle = document.querySelector("meta[name='twitter:title']");
-      if (twitterTitle) {
-        twitterTitle.setAttribute("content", pageTitle);
-      }
-
-      const twitterDescription = document.querySelector("meta[name='twitter:description']");
-      if (twitterDescription) {
-        twitterDescription.setAttribute("content", pageDescription);
-      }
+    if (line.startsWith("- ")) {
+      if (!inList) html += "<ul>";
+      inList = true;
+      html += `<li>${formatInline(line.replace("- ", ""))}</li>`;
+      continue;
     }
 
-    function injectArticleSchema(article) {
-      const schemaEl = document.getElementById("article-schema");
-      if (!schemaEl || !article) return;
-
-      const pageUrl = `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
-      const publishedTime = article.published_at || article.created_at || "";
-      const modifiedTime = article.updated_at || publishedTime;
-
-      const schema = {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        "headline": article.title || "未命名文章",
-        "description": article.seo_description || article.summary || "",
-        "url": pageUrl,
-        "datePublished": publishedTime,
-        "dateModified": modifiedTime,
-        "author": {
-          "@type": "Organization",
-          "name": "Aplus AI SEO"
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Aplus AI SEO"
-        },
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": pageUrl
-        },
-        "inLanguage": "zh-Hant"
-      };
-
-      schemaEl.textContent = JSON.stringify(schema);
+    if (inList) {
+      html += "</ul>";
+      inList = false;
     }
 
-    async function renderArticle() {
-      const titleEl = document.getElementById("article-title");
-      const contentEl = document.getElementById("article-content");
+    html += `<p>${formatInline(line)}</p>`;
+  }
 
-      try {
-        const article = await loadArticle();
+  if (inList) html += "</ul>";
 
-        if (!article) {
-          titleEl.innerText = "找不到文章";
-          contentEl.innerHTML = "<p>目前找不到這篇文章內容。</p>";
-          return null;
-        }
+  return html;
+}
 
-        titleEl.innerText = article.title || "未命名文章";
-        contentEl.innerHTML = article.content
-          ? renderArticleBody(article.content)
-          : "<p>目前尚無內容。</p>";
+async function loadArticle() {
+  const supabase = window.supabaseClient;
 
-        setSEO(article);
-        injectArticleSchema(article);
-        return article;
-      } catch (error) {
-        console.error("載入文章失敗：", error);
-        titleEl.innerText = "載入失敗";
-        contentEl.innerHTML = `<p>文章載入失敗：${escapeHtml(error.message)}</p>`;
-        return null;
-      }
-    }
+  const { data, error } = await supabase
+    .from("articles")
+    .select("*")
+    .eq("slug", getSlug())
+    .single();
 
-    async function trackPageView(article) {
-      if (!article) return;
+  if (error) throw error;
+  return data;
+}
 
-      try {
-        await ArticleStore.trackEvent({
-          articleId: article.id,
-          eventType: "page_view",
-          source: getSource()
-        });
-      } catch (error) {
-        console.error("記錄 PV 失敗：", error);
-      }
-    }
+function setSEO(article) {
+  const url = `${SITE_ORIGIN}/article.html?slug=${article.slug}`;
 
-    function bindForm(article) {
-      const form = document.getElementById("lead-form");
-      if (!form || !article) return;
+  document.title = article.seo_title || article.title;
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+  document.querySelector("meta[name='description']")
+    ?.setAttribute("content", article.seo_description || article.summary || "");
 
-        const formData = new FormData(form);
+  document.querySelector("link[rel='canonical']")
+    ?.setAttribute("href", url);
 
-        const status = formData.get("status");
-        const website = formData.get("website");
-        const message = formData.get("message");
+  document.querySelector("meta[property='og:title']")
+    ?.setAttribute("content", article.title);
 
-        const mergedMessage = [
-          website ? `網站：${website}` : "",
-          status ? `目前狀況：${status}` : "",
-          message ? `需求：${message}` : ""
-        ].filter(Boolean).join("\n");
+  document.querySelector("meta[property='og:description']")
+    ?.setAttribute("content", article.summary || "");
 
-        try {
-          await ArticleStore.createLead({
-            name: formData.get("name"),
-            contactValue: formData.get("contact"),
-            message: mergedMessage,
-            sourceArticleId: article.id,
-            sourceArticleTitle: article.title,
-            sourceChannel: getSource()
-          });
+  document.querySelector("meta[property='og:url']")
+    ?.setAttribute("content", url);
+}
 
-          showLeadSuccessModal();
-          form.reset();
-        } catch (error) {
-          console.error("送出詢問失敗：", error);
-          alert(`送出失敗：${error.message}`);
-        }
-      });
-    }
+/* 🔥 分享功能 */
+function bindShareButtons(article) {
+  const url = encodeURIComponent(`${SITE_ORIGIN}/article.html?slug=${article.slug}`);
+  const title = encodeURIComponent(article.title);
 
-    function showLeadSuccessModal() {
-      const modal = document.getElementById("lead-success-modal");
-      if (!modal) return;
+  const links = {
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+    x: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
+    line: `https://social-plugins.line.me/lineit/share?url=${url}`,
+  };
 
-      modal.classList.remove("hidden");
+  document.getElementById("share-facebook").onclick = () => window.open(links.facebook);
+  document.getElementById("share-linkedin").onclick = () => window.open(links.linkedin);
+  document.getElementById("share-x").onclick = () => window.open(links.x);
+  document.getElementById("share-line").onclick = () => window.open(links.line);
 
-      const closeBtn = document.getElementById("modal-close");
+  document.getElementById("share-copy").onclick = async () => {
+    await navigator.clipboard.writeText(`${SITE_ORIGIN}/article.html?slug=${article.slug}`);
+    alert("已複製連結");
+  };
+}
 
-      function close() {
-        modal.classList.add("hidden");
-      }
+async function renderArticle() {
+  const article = await loadArticle();
 
-      closeBtn?.addEventListener("click", close);
-      modal.querySelector(".modal__overlay")?.addEventListener("click", close);
-    }
+  currentArticle = article;
 
-    async function renderRelatedArticles(currentSlug) {
-      const articles = await ArticleStore.getArticles();
+  document.getElementById("article-title").innerText = article.title;
 
-      const list = articles
-        .filter(a => a.slug !== currentSlug && a.status === "published")
-        .slice(0, 5);
+  const content = article.body || article.content || "";
+  document.getElementById("article-content").innerHTML =
+    content ? renderArticleBody(content) : "<p>目前尚無內容</p>";
 
-      const el = document.getElementById("related-articles");
+  setSEO(article);
+  bindShareButtons(article);
 
-      if (!list.length) {
-        el.innerHTML = "<li>目前沒有其他文章</li>";
-        return;
-      }
+  return article;
+}
 
-      el.innerHTML = list.map(a => `
-        <li>
-          <a href="./article.html?slug=${encodeURIComponent(a.slug)}&source=article">
-            ${escapeHtml(a.title)}
-          </a>
-        </li>
-      `).join("");
-    }
+async function init() {
+  const article = await renderArticle();
 
-    async function initArticlePage() {
-      const article = await renderArticle();
-      if (!article) return;
+  const views = await increaseAndFetchViews(article);
+  document.getElementById("article-views").innerText = views;
+}
 
-      const viewsEl = document.getElementById("article-views");
-      const views = await increaseAndFetchViews(article);
-
-      if (viewsEl) {
-        viewsEl.textContent = views;
-      }
-
-      await trackPageView(article);
-      await renderRelatedArticles(article.slug);
-      bindForm(article);
-    }
-
-    initArticlePage();
-  </script>
+init();
+</script>
 
 </body>
 </html>
