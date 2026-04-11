@@ -222,6 +222,12 @@
         <path d="M12 2C6.5 2 2 5.8 2 10.5c0 4 3.2 7.4 7.5 8.2-.3 1-.9 2.3-1.2 2.9-.2.4.2.9.7.6 1.2-.7 3.3-2.1 4.4-3 5.3-.4 9.6-4 9.6-8.7C23 5.8 18.5 2 12 2z"/>
       </svg>
     </button>
+    
+    <button id="share-threads" class="share-icon" aria-label="Threads">
+  <svg viewBox="0 0 24 24">
+    <path d="M16.3 10.3c-.2-3-2-4.7-5.2-4.7-3.1 0-5.4 2-5.4 5 0 3 2.2 5 5.5 5 2.4 0 4-.9 4.8-2.5h-2.4c-.5.7-1.3 1-2.4 1-1.8 0-3-.9-3.1-2.4h8.3c.1-.3.1-.7.1-1 0-.8-.1-1.5-.2-1.9z"/>
+  </svg>
+</button>
 
   </div>
 
@@ -551,106 +557,163 @@
       return `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
     }
 
+    
+
     function stripMarkdownToPlainText(text = "") {
-      return String(text)
-        .replace(/^##\s+/gm, "")
-        .replace(/^###\s+/gm, "")
-        .replace(/^-\s+/gm, "• ")
-        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1：$2")
-        .replace(/\*\*(.*?)\*\*/g, "$1")
-        .trim();
-    }
+  return String(text)
+    .replace(/^##\s+/gm, "")
+    .replace(/^###\s+/gm, "")
+    .replace(/^-\s+/gm, "• ")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
 
-    function buildSummaryPost(article) {
-      const url = getArticleUrl(article);
-      const title = article.title || "";
-      const summary = article.summary || "";
-      const body = stripMarkdownToPlainText(article.content || article.body || "");
+/* 🔥 打亂 */
+function shuffleArray(arr = []) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
-      const shortBody = body.length > 300
-        ? `${body.slice(0, 300)}...`
-        : body;
+/* 🔥 動態 hashtag */
+function generateHashtags(article, count = 4) {
+  const text = `
+    ${article.title}
+    ${article.summary}
+    ${article.body || article.content}
+  `;
 
-      return `${title}
+  const pool = ["#SEO", "#內容行銷", "#數位行銷"];
 
-${summary}
+  if (/AI/i.test(text)) pool.push("#AISEO");
+  if (/流量/.test(text)) pool.push("#流量成長");
+  if (/關鍵字/.test(text)) pool.push("#關鍵字策略");
+  if (/網站/.test(text)) pool.push("#網站優化");
+  if (/企業/.test(text)) pool.push("#企業網站");
+  if (/品牌/.test(text)) pool.push("#品牌經營");
+  if (/轉換/.test(text)) pool.push("#流量轉換");
+  if (/自然/.test(text)) pool.push("#自然流量");
+  if (/內容/.test(text)) pool.push("#內容策略");
 
-${shortBody}
+  return shuffleArray([...new Set(pool)]).slice(0, count);
+}
 
-閱讀全文：
-${url}`;
-    }
+/* 🔥 200-300字貼文 */
+function generateSummaryPost(article) {
+  const title = article.title || "";
+  const summary = article.summary || "";
+  const body = stripMarkdownToPlainText(article.content || article.body || "");
 
-    function buildFullArticleText(article) {
-      const url = getArticleUrl(article);
-      const title = article.title || "";
-      const summary = article.summary || "";
-      const body = stripMarkdownToPlainText(article.content || article.body || "");
+  let text = `${title}\n\n${summary}`;
 
-      return `${title}
+  if (text.length < 200) {
+    const extra = body.slice(0, 200 - text.length + 50);
+    text += `\n\n${extra}`;
+  }
 
-${summary ? summary + "\n\n" : ""}${body}
+  if (text.length > 260) {
+    text = text.slice(0, 260) + "...";
+  }
 
-原文連結：
-${url}`;
-    }
+  const hashtags = generateHashtags(article).join(" ");
 
-    function bindShareButtons(article) {
-      const url = encodeURIComponent(getArticleUrl(article));
-      const title = encodeURIComponent(article.title || "文章");
+  return `${text}
 
-      const links = {
-        facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-        x: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
-        line: `https://social-plugins.line.me/lineit/share?url=${url}`
-      };
+閱讀文章
 
-      document.getElementById("share-facebook").onclick = () => {
-        window.open(links.facebook, "_blank", "width=720,height=640");
-      };
+${hashtags}`;
+}
 
-      document.getElementById("share-linkedin").onclick = () => {
-        window.open(links.linkedin, "_blank", "width=720,height=640");
-      };
+/* 🔥 全文 */
+function generateFullText(article) {
+  const title = article.title || "";
+  const body = stripMarkdownToPlainText(article.content || article.body || "");
+  const hashtags = generateHashtags(article, 5).join(" ");
 
-      document.getElementById("share-x").onclick = () => {
-        window.open(links.x, "_blank", "width=720,height=640");
-      };
+  return `${title}
 
-      document.getElementById("share-line").onclick = () => {
-        window.open(links.line, "_blank", "width=720,height=640");
-      };
+${body}
 
-      document.getElementById("share-copy").onclick = async () => {
-        try {
-          await navigator.clipboard.writeText(getArticleUrl(article));
-          alert("已複製連結");
-        } catch (error) {
-          prompt("請手動複製以下連結：", getArticleUrl(article));
-        }
-      };
+閱讀文章
 
-      document.getElementById("copy-summary-post").onclick = async () => {
-        const text = buildSummaryPost(article);
-        try {
-          await navigator.clipboard.writeText(text);
-          alert("已複製貼文版內容");
-        } catch (error) {
-          prompt("請手動複製以下內容：", text);
-        }
-      };
+${hashtags}`;
+}
 
-      document.getElementById("copy-full-article").onclick = async () => {
-        const text = buildFullArticleText(article);
-        try {
-          await navigator.clipboard.writeText(text);
-          alert("已複製全文");
-        } catch (error) {
-          prompt("請手動複製以下全文：", text);
-        }
-      };
-    }
+/* 🔥 複製工具 */
+async function copyText(text, successMsg) {
+  try {
+    await navigator.clipboard.writeText(text);
+    alert(successMsg);
+  } catch {
+    prompt("請手動複製：", text);
+  }
+}
+
+/* 🔥 打開平台 */
+function openPlatform(name) {
+  const map = {
+    facebook: "https://www.facebook.com/",
+    linkedin: "https://www.linkedin.com/feed/",
+    x: "https://x.com/compose/post",
+    threads: "https://www.threads.net/",
+    line: "https://line.me/"
+  };
+
+  window.open(map[name], "_blank", "width=900,height=700");
+}
+
+/* 🔥 主綁定 */
+function bindShareButtons(article) {
+  const summaryText = generateSummaryPost(article);
+  const fullText = generateFullText(article);
+  const url = getArticleUrl(article);
+
+  document.getElementById("share-facebook").onclick = async () => {
+    await copyText(summaryText, "已複製 Facebook 貼文");
+    openPlatform("facebook");
+  };
+
+  document.getElementById("share-linkedin").onclick = async () => {
+    await copyText(summaryText, "已複製 LinkedIn 貼文");
+    openPlatform("linkedin");
+  };
+
+  document.getElementById("share-x").onclick = async () => {
+    await copyText(summaryText, "已複製 X 貼文");
+    openPlatform("x");
+  };
+
+  /* 🔥 Threads（你原本沒有，我幫你加） */
+  const threadsBtn = document.getElementById("share-threads");
+  if (threadsBtn) {
+    threadsBtn.onclick = async () => {
+      await copyText(summaryText, "已複製 Threads 貼文");
+      openPlatform("threads");
+    };
+  }
+
+  document.getElementById("share-line").onclick = async () => {
+    await copyText(summaryText, "已複製 LINE 貼文");
+    openPlatform("line");
+  };
+
+  document.getElementById("copy-summary-post").onclick = async () => {
+    await copyText(summaryText, "已複製貼文");
+  };
+
+  document.getElementById("copy-full-article").onclick = async () => {
+    await copyText(fullText, "已複製全文");
+  };
+
+  document.getElementById("share-copy").onclick = async () => {
+    await copyText(url, "已複製連結");
+  };
+}
 
     async function renderArticle() {
       const titleEl = document.getElementById("article-title");
