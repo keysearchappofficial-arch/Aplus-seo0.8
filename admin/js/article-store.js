@@ -232,6 +232,19 @@ async function updateLeadNote(id, note) {
   return data[0];
 }
 
+async function deleteArticle(id) {
+  const supabase = window.supabaseClient;
+
+  const { error } = await supabase
+    .from("articles")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+
+  return true;
+}
+
 window.ArticleStore = {
   getArticles,
   getLeads,
@@ -240,5 +253,6 @@ window.ArticleStore = {
   createLead,
   updateLeadStatus,
   updateLeadNote,
-  getDashboardStats
+  getDashboardStats,
+  deleteArticle   // 👈 加這行
 };
