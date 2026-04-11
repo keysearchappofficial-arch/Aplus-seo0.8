@@ -263,9 +263,19 @@
     }
 
     function formatInline(text = "") {
-      return escapeHtml(text)
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    }
+  let escaped = escapeHtml(text);
+
+  // **粗體**
+  escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // [文字](網址)
+  escaped = escaped.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_self" rel="noopener">$1</a>'
+  );
+
+  return escaped;
+}
 
     function renderArticleBody(content = "") {
       const lines = String(content)
