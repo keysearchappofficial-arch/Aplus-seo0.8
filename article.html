@@ -677,40 +677,48 @@ function openPlatform(name) {
 }
 
 function bindShareButtons(article) {
+  const facebookText = article.social_facebook || article.summary || article.title || "";
+  const xText = article.social_x || article.summary || article.title || "";
+  const linkedinText = article.social_linkedin || article.summary || article.title || "";
+  const threadsText = article.social_threads || article.summary || article.title || "";
+  const lineText = article.social_line || article.summary || article.title || "";
+  const fullText = generateFullText(article);
+  const articleUrl = getArticleUrl(article);
+
   document.getElementById("share-facebook").onclick = async () => {
-    await copyText(generateFacebookPost(article), "已複製 FB 貼文");
+    await copyText(facebookText, "已複製 FB 貼文");
     openPlatform("facebook");
   };
 
   document.getElementById("share-x").onclick = async () => {
-    await copyText(generateXPost(article), "已複製 X 貼文");
+    await copyText(xText, "已複製 X 貼文");
     openPlatform("x");
   };
 
   document.getElementById("share-linkedin").onclick = async () => {
-    await copyText(generateLinkedInPost(article), "已複製 LinkedIn 貼文");
+    await copyText(linkedinText, "已複製 LinkedIn 貼文");
     openPlatform("linkedin");
   };
 
   const threadsBtn = document.getElementById("share-threads");
   if (threadsBtn) {
     threadsBtn.onclick = async () => {
-      await copyText(generateThreadsPost(article), "已複製 Threads");
+      await copyText(threadsText, "已複製 Threads 貼文");
       openPlatform("threads");
     };
   }
 
   document.getElementById("share-line").onclick = async () => {
-    await copyText(generateLinePost(article), "已複製 LINE");
+    await copyText(lineText, "已複製 LINE 貼文");
     openPlatform("line");
   };
 
   document.getElementById("copy-full-article").onclick = async () => {
-    await copyText(generateFullText(article), "已複製全文");
+    await copyText(fullText, "已複製全文");
   };
 
   document.getElementById("share-copy").onclick = async () => {
-    await copyText(getArticleUrl(article), "已複製連結");
+    await copyText(articleUrl, "已複製連結");
   };
 }
 
