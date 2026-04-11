@@ -171,6 +171,19 @@
         font-size: 20px;
       }
     }
+    
+    .filter-chip {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.filter-chip.is-active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
   </style>
 
   <script type="application/ld+json" id="blog-schema">
@@ -201,6 +214,20 @@
         <p class="blog-meta-overview">
           目前共收錄 <strong id="article-count">0</strong> 篇文章
         </p>
+        
+        <div class="blog-filters" id="blog-filters" style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;">
+  <button class="btn btn--soft filter-chip is-active" data-industry="all">全部</button>
+  <button class="btn btn--soft filter-chip" data-industry="企業服務">企業服務</button>
+  <button class="btn btn--soft filter-chip" data-industry="醫美診所">醫美診所</button>
+  <button class="btn btn--soft filter-chip" data-industry="法律顧問">法律顧問</button>
+  <button class="btn btn--soft filter-chip" data-industry="室內設計">室內設計</button>
+  <button class="btn btn--soft filter-chip" data-industry="製造業">製造業</button>
+  <button class="btn btn--soft filter-chip" data-industry="教育培訓">教育培訓</button>
+  <button class="btn btn--soft filter-chip" data-industry="品牌電商">品牌電商</button>
+  <button class="btn btn--soft filter-chip" data-industry="房地產">房地產</button>
+  <button class="btn btn--soft filter-chip" data-industry="金融保險">金融保險</button>
+  <button class="btn btn--soft filter-chip" data-industry="科技服務">科技服務</button>
+</div>
       </div>
 
       <div class="blog-intro-card">
@@ -242,6 +269,9 @@
   <script>
   const SITE_ORIGIN = "https://www.keysearch-app.com";
 
+  let allArticles = [];
+  let currentIndustry = "all";
+
   async function loadArticles() {
     const supabase = window.supabaseClient;
     if (!supabase) {
@@ -262,7 +292,8 @@
         views,
         published_at,
         created_at,
-        topic_title
+        topic_title,
+        industry_category
       `)
       .eq("status", "published")
       .order("published_at", { ascending: false });
@@ -293,15 +324,30 @@
       .replace(/'/g, "&#39;");
   }
 
+  function getArticleSummary(article) {
+    const summary = String(article.summary || "").trim();
+    const seoDescription = String(article.seo_description || "").trim();
+
+    if (summary) return summary;
+    if (seoDescription) return seoDescription;
+
+    return "這篇文章整理 SEO 內容策略、網站流量成長與內容獲客重點，幫助你更清楚理解如何透過文章累積搜尋曝光與潛在客戶。";
+  }
+
+  function getIndustryLabel(article) {
+    return String(article.industry_category || "").trim() || "企業服務";
+  }
+
+  function getTopicLabel(article) {
+    return String(article.topic_title || "").trim() || "SEO 文章";
+  }
+
   function buildArticleCard(article) {
     const title = escapeHtml(article.title || "未命名文章");
-    const summary = escapeHtml(
-      article.summary ||
-      article.seo_description ||
-      "查看這篇文章，了解更多 SEO 內容策略與流量成長方法。"
-    );
-    const category = escapeHtml(article.topic_title || "SEO 文章");
-    const badgeText = "SEO";
+    const summary = escapeHtml(getArticleSummary(article));
+    const industry = escapeHtml(getIndustryLabel(article));
+    const topicLabel = escapeHtml(getTopicLabel(article));
+    const badgeText = escapeHtml(industry.slice(0, 6) || "SEO");
     const dateText = formatDate(article.published_at || article.created_at);
     const slug = encodeURIComponent(article.slug || "");
 
@@ -310,7 +356,8 @@
         <div class="blog-card__thumb">${badgeText}</div>
         <div class="blog-card__body">
           <div class="inline-meta">
-            <span>${category}</span>
+            <span>${industry}</span>
+            <span>${topicLabel}</span>
             <span>${dateText}</span>
           </div>
           <h3>${title}</h3>
@@ -336,10 +383,7 @@
         "position": index + 1,
         "url": `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`,
         "name": article.title || "未命名文章",
-        "description":
-          article.summary ||
-          article.seo_description ||
-          "SEO 與內容流量相關文章"
+        "description": getArticleSummary(article)
       }))
     };
 
@@ -350,29 +394,71 @@
     document.head.appendChild(script);
   }
 
+  function getFilteredArticles() {
+    if (currentIndustry === "all") return allArticles;
+
+    return allArticles.filter(article => {
+      return String(article.industry_category || "").trim() === currentIndustry;
+    });
+  }
+
+  function updateFilterUi() {
+    document.querySelectorAll(".filter-chip").forEach(btn => {
+      btn.classList.toggle("is-active", btn.dataset.industry === currentIndustry);
+    });
+  }
+
+  function renderBlogList() {
+    const listEl = document.getElementById("blog-list");
+    const countEl = document.getElementById("article-count");
+    const articles = getFilteredArticles();
+
+    if (countEl) {
+      countEl.textContent = String(articles.length);
+    }
+
+    if (!articles.length) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <h3>目前尚無文章</h3>
+          <p>這個分類目前還沒有文章，之後這裡會持續更新相關內容。</p>
+        </div>
+      `;
+      injectBlogItemListSchema([]);
+      return;
+    }
+
+    listEl.innerHTML = articles.map(buildArticleCard).join("");
+    injectBlogItemListSchema(articles);
+  }
+
+  function bindBlogFilters() {
+    const buttons = document.querySelectorAll(".filter-chip");
+    if (!buttons.length) return;
+
+    buttons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentIndustry = btn.dataset.industry || "all";
+        updateFilterUi();
+        renderBlogList();
+      });
+    });
+  }
+
   async function renderBlog() {
     const listEl = document.getElementById("blog-list");
     const countEl = document.getElementById("article-count");
 
     try {
-      const articles = await loadArticles();
+      allArticles = await loadArticles();
 
       if (countEl) {
-        countEl.textContent = String(articles.length);
+        countEl.textContent = String(allArticles.length);
       }
 
-      if (!articles.length) {
-        listEl.innerHTML = `
-          <div class="empty-state">
-            <h3>目前尚無文章</h3>
-            <p>文章準備中，之後這裡會持續更新 SEO 與內容獲客相關內容。</p>
-          </div>
-        `;
-        return;
-      }
-
-      listEl.innerHTML = articles.map(buildArticleCard).join("");
-      injectBlogItemListSchema(articles);
+      bindBlogFilters();
+      updateFilterUi();
+      renderBlogList();
     } catch (error) {
       console.error("載入文章失敗：", error);
       listEl.innerHTML = `
