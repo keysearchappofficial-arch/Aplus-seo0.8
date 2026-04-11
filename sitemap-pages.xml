@@ -1,78 +1,69 @@
-<urlset>
-  <!-- Home -->
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
   <url>
-    <loc>https://www.sentrum.com.tw/</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/" />
+    <loc>https://www.keysearch-app.com/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/" />
   </url>
 
-  <!-- Products -->
   <url>
-    <loc>https://www.sentrum.com.tw/products.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/products.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/products.html" />
+    <loc>https://www.keysearch-app.com/system.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/system.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/system.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/system.html" />
   </url>
 
-  <!-- U-Hub -->
   <url>
-    <loc>https://www.sentrum.com.tw/u-hub.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/u-hub.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/u-hub.html" />
+    <loc>https://www.keysearch-app.com/topic-generator.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/topic-generator.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/topic-generator.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/topic-generator.html" />
   </url>
 
-  <!-- U-Show -->
   <url>
-    <loc>https://www.sentrum.com.tw/u-show.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/u-show.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/u-show.html" />
+    <loc>https://www.keysearch-app.com/seo-content.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/seo-content.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/seo-content.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/seo-content.html" />
   </url>
 
-  <!-- U-TP -->
   <url>
-    <loc>https://www.sentrum.com.tw/u-tp.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/u-tp.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/u-tp.html" />
+    <loc>https://www.keysearch-app.com/content-management.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/content-management.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/content-management.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/content-management.html" />
   </url>
 
-  <!-- UE Virtual -->
   <url>
-    <loc>https://www.sentrum.com.tw/ue-virtual.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/ue-virtual.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/ue-virtual.html" />
+    <loc>https://www.keysearch-app.com/seo-structure.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/seo-structure.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/seo-structure.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/seo-structure.html" />
   </url>
 
-  <!-- Solutions -->
   <url>
-    <loc>https://www.sentrum.com.tw/solutions.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/solutions.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/solutions.html" />
+    <loc>https://www.keysearch-app.com/analytics.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/analytics.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/analytics.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/analytics.html" />
   </url>
 
-  <!-- Rental -->
   <url>
-    <loc>https://www.sentrum.com.tw/rental.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/rental.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/rental.html" />
+    <loc>https://www.keysearch-app.com/blog.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/blog.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/blog.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/blog.html" />
   </url>
 
-  <!-- Cases -->
   <url>
-    <loc>https://www.sentrum.com.tw/cases.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/cases.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/cases.html" />
+    <loc>https://www.keysearch-app.com/contact.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/contact.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.keysearch-app.com/en/contact.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/contact.html" />
   </url>
 
-  <!-- About -->
-  <url>
-    <loc>https://www.sentrum.com.tw/about.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/about.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/about.html" />
-  </url>
-
-  <!-- Contact -->
-  <url>
-    <loc>https://www.sentrum.com.tw/contact.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://www.sentrum.com.tw/contact.html" />
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.sentrum.com.tw/en/contact.html" />
-  </url>
 </urlset>
