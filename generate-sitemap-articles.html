@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generate Sitemap Articles</title>
+</head>
+<body>
+  <pre id="output">Loading...</pre>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./admin/js/supabase.js"></script>
+  <script>
+    async function generateSitemap() {
+      const supabase = window.supabaseClient;
+      const output = document.getElementById("output");
+
+      const { data, error } = await supabase
+        .from("articles")
+        .select("slug, updated_at, published_at, status")
+        .eq("status", "published")
+        .order("published_at", { ascending: false });
+
+      if (error) {
+        output.textContent = error.message;
+        return;
+      }
+
+      const urls = (data || []).map(article => {
+        const lastmod = article.updated_at || article.published_at || "";
+        return `
+  <url>
+    <loc>https://www.keysearch-app.com/article.html?slug=${article.slug}</loc>
+    ${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}
+  </url>`;
+      }).join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
+</urlset>`;
+
+      output.textContent = xml;
+    }
+
+    generateSitemap();
+  </script>
+</body>
+</html>
