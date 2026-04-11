@@ -74,6 +74,33 @@
     .article-content strong {
       color: #0f172a;
     }
+
+    .article-content a {
+      color: #2563eb;
+      text-decoration: underline;
+      word-break: break-word;
+    }
+
+    .article-content a:hover {
+      color: #1d4ed8;
+    }
+
+    .article-share-bar {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .article-share-bar .btn {
+      min-height: 42px;
+    }
+
+    @media (max-width: 640px) {
+      .article-share-bar .btn {
+        flex: 1 1 calc(50% - 8px);
+      }
+    }
   </style>
 
   <script type="application/ld+json" id="article-schema"></script>
@@ -94,14 +121,16 @@
       <div id="article-meta" style="margin-top:8px;color:#64748b;font-size:13px;">
         有效瀏覽：<span id="article-views">--</span>
       </div>
-      
-      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-  <button id="share-facebook" class="btn btn--soft">Facebook</button>
-  <button id="share-linkedin" class="btn btn--soft">LinkedIn</button>
-  <button id="share-x" class="btn btn--soft">X</button>
-  <button id="share-line" class="btn btn--soft">LINE</button>
-  <button id="share-copy" class="btn btn--primary">複製連結</button>
-</div>
+
+      <div class="article-share-bar">
+        <button id="share-facebook" class="btn btn--soft" type="button">Facebook</button>
+        <button id="share-linkedin" class="btn btn--soft" type="button">LinkedIn</button>
+        <button id="share-x" class="btn btn--soft" type="button">X</button>
+        <button id="share-line" class="btn btn--soft" type="button">LINE</button>
+        <button id="share-copy" class="btn btn--primary" type="button">複製連結</button>
+        <button id="copy-summary-post" class="btn btn--soft" type="button">複製貼文版</button>
+        <button id="copy-full-article" class="btn btn--soft" type="button">複製全文</button>
+      </div>
 
       <div id="article-content" class="article-content"></div>
 
@@ -168,7 +197,7 @@
       </p>
 
       <div class="modal__actions">
-        <button id="modal-close" class="btn btn--ghost">關閉</button>
+        <button id="modal-close" class="btn btn--ghost" type="button">關閉</button>
         <a href="https://line.me/..." class="btn btn--primary">加 LINE 諮詢</a>
         <a href="./index.html" class="btn btn--primary">回首頁</a>
       </div>
@@ -181,224 +210,494 @@
   <script src="./assets/js/layout.js"></script>
 
   <script>
-const SITE_ORIGIN = "https://www.keysearch-app.com";
+    const SITE_ORIGIN = "https://www.keysearch-app.com";
+    let currentArticle = null;
 
-let currentArticle = null;
-
-function getSlug() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("slug");
-}
-
-function getVisitorId() {
-  let visitorId = localStorage.getItem("aplus_visitor_id");
-
-  if (!visitorId) {
-    visitorId =
-      "v_" +
-      Math.random().toString(36).slice(2) +
-      "_" +
-      Date.now().toString(36);
-
-    localStorage.setItem("aplus_visitor_id", visitorId);
-  }
-
-  return visitorId;
-}
-
-function shouldCountView(slug, cooldownMs = 5 * 60 * 1000) {
-  const key = `aplus_viewed_${slug}`;
-  const lastViewedAt = Number(localStorage.getItem(key) || 0);
-  const now = Date.now();
-
-  if (now - lastViewedAt < cooldownMs) return false;
-
-  localStorage.setItem(key, String(now));
-  return true;
-}
-
-async function increaseAndFetchViews(article) {
-  try {
-    const supabase = window.supabaseClient;
-    if (!supabase) return 0;
-
-    const shouldIncrease = shouldCountView(article.slug);
-
-    let currentViews = article.views || 0;
-
-    if (!shouldIncrease) return currentViews;
-
-    const { error } = await supabase
-      .from("articles")
-      .update({ views: currentViews + 1 })
-      .eq("id", article.id);
-
-    if (error) throw error;
-
-    await supabase.from("article_view_logs").insert({
-      article_id: article.id,
-      visitor_id: getVisitorId()
-    });
-
-    return currentViews + 1;
-  } catch (err) {
-    console.error("PV error", err);
-    return article.views || 0;
-  }
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-/* 🔥 內連 + URL + markdown */
-function formatInline(text = "") {
-  let escaped = escapeHtml(text);
-
-  escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-  // markdown link
-  escaped = escaped.replace(
-    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2">$1</a>'
-  );
-
-  // 純網址
-  escaped = escaped.replace(
-    /(https?:\/\/[^\s]+)/g,
-    '<a href="$1">$1</a>'
-  );
-
-  return escaped;
-}
-
-function renderArticleBody(content = "") {
-  const lines = String(content).split("\n").map(l => l.trim()).filter(Boolean);
-
-  let html = "";
-  let inList = false;
-
-  for (const line of lines) {
-    if (line.startsWith("## ")) {
-      if (inList) html += "</ul>";
-      inList = false;
-      html += `<h2>${formatInline(line.replace("## ", ""))}</h2>`;
-      continue;
+    function getSlug() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("slug");
     }
 
-    if (line.startsWith("### ")) {
-      if (inList) html += "</ul>";
-      inList = false;
-      html += `<h3>${formatInline(line.replace("### ", ""))}</h3>`;
-      continue;
+    function getSource() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("source") || "direct";
     }
 
-    if (line.startsWith("- ")) {
-      if (!inList) html += "<ul>";
-      inList = true;
-      html += `<li>${formatInline(line.replace("- ", ""))}</li>`;
-      continue;
+    function getVisitorId() {
+      let visitorId = localStorage.getItem("aplus_visitor_id");
+
+      if (!visitorId) {
+        visitorId =
+          "v_" +
+          Math.random().toString(36).slice(2) +
+          "_" +
+          Date.now().toString(36);
+
+        localStorage.setItem("aplus_visitor_id", visitorId);
+      }
+
+      return visitorId;
     }
 
-    if (inList) {
-      html += "</ul>";
-      inList = false;
+    function shouldCountView(slug, cooldownMs = 5 * 60 * 1000) {
+      const key = `aplus_viewed_${slug}`;
+      const lastViewedAt = Number(localStorage.getItem(key) || 0);
+      const now = Date.now();
+
+      if (now - lastViewedAt < cooldownMs) {
+        return false;
+      }
+
+      localStorage.setItem(key, String(now));
+      return true;
     }
 
-    html += `<p>${formatInline(line)}</p>`;
-  }
+    async function increaseAndFetchViews(article) {
+      try {
+        const supabase = window.supabaseClient;
+        if (!supabase) return 0;
 
-  if (inList) html += "</ul>";
+        const shouldIncrease = shouldCountView(article.slug);
+        const currentViews = article.views || 0;
 
-  return html;
-}
+        if (!shouldIncrease) {
+          return currentViews;
+        }
 
-async function loadArticle() {
-  const supabase = window.supabaseClient;
+        const { error: updateError } = await supabase
+          .from("articles")
+          .update({ views: currentViews + 1 })
+          .eq("id", article.id);
 
-  const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .eq("slug", getSlug())
-    .single();
+        if (updateError) throw updateError;
 
-  if (error) throw error;
-  return data;
-}
+        await supabase.from("article_view_logs").insert({
+          article_id: article.id,
+          visitor_id: getVisitorId()
+        });
 
-function setSEO(article) {
-  const url = `${SITE_ORIGIN}/article.html?slug=${article.slug}`;
+        return currentViews + 1;
+      } catch (error) {
+        console.error("PV 計算失敗：", error);
+        return article.views || 0;
+      }
+    }
 
-  document.title = article.seo_title || article.title;
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
 
-  document.querySelector("meta[name='description']")
-    ?.setAttribute("content", article.seo_description || article.summary || "");
+    function formatInline(text = "") {
+      let escaped = escapeHtml(text);
 
-  document.querySelector("link[rel='canonical']")
-    ?.setAttribute("href", url);
+      escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-  document.querySelector("meta[property='og:title']")
-    ?.setAttribute("content", article.title);
+      escaped = escaped.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_self" rel="noopener">$1</a>'
+      );
 
-  document.querySelector("meta[property='og:description']")
-    ?.setAttribute("content", article.summary || "");
+      escaped = escaped.replace(
+        /(https?:\/\/[^\s]+)/g,
+        '<a href="$1" target="_self" rel="noopener">$1</a>'
+      );
 
-  document.querySelector("meta[property='og:url']")
-    ?.setAttribute("content", url);
-}
+      return escaped;
+    }
 
-/* 🔥 分享功能 */
-function bindShareButtons(article) {
-  const url = encodeURIComponent(`${SITE_ORIGIN}/article.html?slug=${article.slug}`);
-  const title = encodeURIComponent(article.title);
+    function renderArticleBody(content = "") {
+      const lines = String(content)
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean);
 
-  const links = {
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-    x: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
-    line: `https://social-plugins.line.me/lineit/share?url=${url}`,
-  };
+      let html = "";
+      let inList = false;
 
-  document.getElementById("share-facebook").onclick = () => window.open(links.facebook);
-  document.getElementById("share-linkedin").onclick = () => window.open(links.linkedin);
-  document.getElementById("share-x").onclick = () => window.open(links.x);
-  document.getElementById("share-line").onclick = () => window.open(links.line);
+      for (const line of lines) {
+        if (line.startsWith("## ")) {
+          if (inList) {
+            html += "</ul>";
+            inList = false;
+          }
+          html += `<h2>${formatInline(line.replace(/^## /, ""))}</h2>`;
+          continue;
+        }
 
-  document.getElementById("share-copy").onclick = async () => {
-    await navigator.clipboard.writeText(`${SITE_ORIGIN}/article.html?slug=${article.slug}`);
-    alert("已複製連結");
-  };
-}
+        if (line.startsWith("### ")) {
+          if (inList) {
+            html += "</ul>";
+            inList = false;
+          }
+          html += `<h3>${formatInline(line.replace(/^### /, ""))}</h3>`;
+          continue;
+        }
 
-async function renderArticle() {
-  const article = await loadArticle();
+        if (line.startsWith("- ") || line.startsWith("* ")) {
+          if (!inList) {
+            html += "<ul>";
+            inList = true;
+          }
+          html += `<li>${formatInline(line.replace(/^[-*] /, ""))}</li>`;
+          continue;
+        }
 
-  currentArticle = article;
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
 
-  document.getElementById("article-title").innerText = article.title;
+        html += `<p>${formatInline(line)}</p>`;
+      }
 
-  const content = article.body || article.content || "";
-  document.getElementById("article-content").innerHTML =
-    content ? renderArticleBody(content) : "<p>目前尚無內容</p>";
+      if (inList) {
+        html += "</ul>";
+      }
 
-  setSEO(article);
-  bindShareButtons(article);
+      return html;
+    }
 
-  return article;
-}
+    async function loadArticle() {
+      const supabase = window.supabaseClient;
+      if (!supabase) {
+        throw new Error("Supabase client 未載入");
+      }
 
-async function init() {
-  const article = await renderArticle();
+      const slug = getSlug();
+      if (!slug) {
+        throw new Error("缺少文章 slug");
+      }
 
-  const views = await increaseAndFetchViews(article);
-  document.getElementById("article-views").innerText = views;
-}
+      const { data, error } = await supabase
+        .from("articles")
+        .select("*")
+        .eq("slug", slug)
+        .single();
 
-init();
-</script>
+      if (error) throw error;
+      return data;
+    }
+
+    function setSEO(article) {
+      const pageUrl = `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
+      const title = article.seo_title || article.title || "文章｜Aplus AI SEO";
+      const description = article.seo_description || article.summary || "AI SEO 文章內容頁面。";
+
+      document.title = title;
+
+      document.querySelector("meta[name='description']")
+        ?.setAttribute("content", description);
+
+      document.querySelector("link[rel='canonical']")
+        ?.setAttribute("href", pageUrl);
+
+      document.querySelector("meta[property='og:title']")
+        ?.setAttribute("content", title);
+
+      document.querySelector("meta[property='og:description']")
+        ?.setAttribute("content", description);
+
+      document.querySelector("meta[property='og:url']")
+        ?.setAttribute("content", pageUrl);
+
+      document.querySelector("meta[name='twitter:title']")
+        ?.setAttribute("content", title);
+
+      document.querySelector("meta[name='twitter:description']")
+        ?.setAttribute("content", description);
+    }
+
+    function injectArticleSchema(article) {
+      const schemaEl = document.getElementById("article-schema");
+      if (!schemaEl || !article) return;
+
+      const pageUrl = `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
+      const publishedTime = article.published_at || article.created_at || "";
+      const modifiedTime = article.updated_at || publishedTime;
+
+      const schema = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": article.title || "未命名文章",
+        "description": article.seo_description || article.summary || "",
+        "url": pageUrl,
+        "datePublished": publishedTime,
+        "dateModified": modifiedTime,
+        "author": {
+          "@type": "Organization",
+          "name": "Aplus AI SEO"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Aplus AI SEO"
+        },
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": pageUrl
+        },
+        "inLanguage": "zh-Hant"
+      };
+
+      schemaEl.textContent = JSON.stringify(schema);
+    }
+
+    function getArticleUrl(article) {
+      return `${SITE_ORIGIN}/article.html?slug=${encodeURIComponent(article.slug || "")}`;
+    }
+
+    function stripMarkdownToPlainText(text = "") {
+      return String(text)
+        .replace(/^##\s+/gm, "")
+        .replace(/^###\s+/gm, "")
+        .replace(/^-\s+/gm, "• ")
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1：$2")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .trim();
+    }
+
+    function buildSummaryPost(article) {
+      const url = getArticleUrl(article);
+      const title = article.title || "";
+      const summary = article.summary || "";
+      const body = stripMarkdownToPlainText(article.content || article.body || "");
+
+      const shortBody = body.length > 300
+        ? `${body.slice(0, 300)}...`
+        : body;
+
+      return `${title}
+
+${summary}
+
+${shortBody}
+
+閱讀全文：
+${url}`;
+    }
+
+    function buildFullArticleText(article) {
+      const url = getArticleUrl(article);
+      const title = article.title || "";
+      const summary = article.summary || "";
+      const body = stripMarkdownToPlainText(article.content || article.body || "");
+
+      return `${title}
+
+${summary ? summary + "\n\n" : ""}${body}
+
+原文連結：
+${url}`;
+    }
+
+    function bindShareButtons(article) {
+      const url = encodeURIComponent(getArticleUrl(article));
+      const title = encodeURIComponent(article.title || "文章");
+
+      const links = {
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
+        x: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
+        line: `https://social-plugins.line.me/lineit/share?url=${url}`
+      };
+
+      document.getElementById("share-facebook").onclick = () => {
+        window.open(links.facebook, "_blank", "width=720,height=640");
+      };
+
+      document.getElementById("share-linkedin").onclick = () => {
+        window.open(links.linkedin, "_blank", "width=720,height=640");
+      };
+
+      document.getElementById("share-x").onclick = () => {
+        window.open(links.x, "_blank", "width=720,height=640");
+      };
+
+      document.getElementById("share-line").onclick = () => {
+        window.open(links.line, "_blank", "width=720,height=640");
+      };
+
+      document.getElementById("share-copy").onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(getArticleUrl(article));
+          alert("已複製連結");
+        } catch (error) {
+          prompt("請手動複製以下連結：", getArticleUrl(article));
+        }
+      };
+
+      document.getElementById("copy-summary-post").onclick = async () => {
+        const text = buildSummaryPost(article);
+        try {
+          await navigator.clipboard.writeText(text);
+          alert("已複製貼文版內容");
+        } catch (error) {
+          prompt("請手動複製以下內容：", text);
+        }
+      };
+
+      document.getElementById("copy-full-article").onclick = async () => {
+        const text = buildFullArticleText(article);
+        try {
+          await navigator.clipboard.writeText(text);
+          alert("已複製全文");
+        } catch (error) {
+          prompt("請手動複製以下全文：", text);
+        }
+      };
+    }
+
+    async function renderArticle() {
+      const titleEl = document.getElementById("article-title");
+      const contentEl = document.getElementById("article-content");
+
+      try {
+        const article = await loadArticle();
+        currentArticle = article;
+
+        if (!article) {
+          titleEl.innerText = "找不到文章";
+          contentEl.innerHTML = "<p>目前找不到這篇文章內容。</p>";
+          return null;
+        }
+
+        titleEl.innerText = article.title || "未命名文章";
+
+        const content = article.content || article.body || "";
+        contentEl.innerHTML = content
+          ? renderArticleBody(content)
+          : "<p>目前尚無內容</p>";
+
+        setSEO(article);
+        injectArticleSchema(article);
+        bindShareButtons(article);
+
+        return article;
+      } catch (error) {
+        console.error("載入文章失敗：", error);
+        titleEl.innerText = "載入失敗";
+        contentEl.innerHTML = `<p>文章載入失敗：${escapeHtml(error.message)}</p>`;
+        return null;
+      }
+    }
+
+    async function trackPageView(article) {
+      if (!article) return;
+
+      try {
+        await ArticleStore.trackEvent({
+          articleId: article.id,
+          eventType: "page_view",
+          source: getSource()
+        });
+      } catch (error) {
+        console.error("記錄 PV 失敗：", error);
+      }
+    }
+
+    function bindForm(article) {
+      const form = document.getElementById("lead-form");
+      if (!form || !article) return;
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const status = formData.get("status");
+        const website = formData.get("website");
+        const message = formData.get("message");
+
+        const mergedMessage = [
+          website ? `網站：${website}` : "",
+          status ? `目前狀況：${status}` : "",
+          message ? `需求：${message}` : ""
+        ].filter(Boolean).join("\n");
+
+        try {
+          await ArticleStore.createLead({
+            name: formData.get("name"),
+            contactValue: formData.get("contact"),
+            message: mergedMessage,
+            sourceArticleId: article.id,
+            sourceArticleTitle: article.title,
+            sourceChannel: getSource()
+          });
+
+          showLeadSuccessModal();
+          form.reset();
+        } catch (error) {
+          console.error("送出詢問失敗：", error);
+          alert(`送出失敗：${error.message}`);
+        }
+      });
+    }
+
+    function showLeadSuccessModal() {
+      const modal = document.getElementById("lead-success-modal");
+      if (!modal) return;
+
+      modal.classList.remove("hidden");
+
+      const closeBtn = document.getElementById("modal-close");
+
+      function close() {
+        modal.classList.add("hidden");
+      }
+
+      closeBtn?.addEventListener("click", close);
+      modal.querySelector(".modal__overlay")?.addEventListener("click", close);
+    }
+
+    async function renderRelatedArticles(currentSlug) {
+      try {
+        const articles = await ArticleStore.getArticles();
+
+        const list = articles
+          .filter(a => a.slug !== currentSlug && a.status === "published")
+          .slice(0, 5);
+
+        const el = document.getElementById("related-articles");
+        if (!el) return;
+
+        if (!list.length) {
+          el.innerHTML = "<li>目前沒有其他文章</li>";
+          return;
+        }
+
+        el.innerHTML = list.map(a => `
+          <li>
+            <a href="./article.html?slug=${encodeURIComponent(a.slug)}&source=article">
+              ${escapeHtml(a.title)}
+            </a>
+          </li>
+        `).join("");
+      } catch (error) {
+        console.error("載入延伸閱讀失敗：", error);
+      }
+    }
+
+    async function initArticlePage() {
+      const article = await renderArticle();
+      if (!article) return;
+
+      const viewsEl = document.getElementById("article-views");
+      const views = await increaseAndFetchViews(article);
+
+      if (viewsEl) {
+        viewsEl.textContent = views;
+      }
+
+      await trackPageView(article);
+      await renderRelatedArticles(article.slug);
+      bindForm(article);
+    }
+
+    initArticlePage();
+  </script>
 
 </body>
 </html>
