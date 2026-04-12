@@ -224,5 +224,17 @@
 
   <script src="./assets/js/layout.js"></script>
   <script src="./js/main.js"></script>
+  
+  <script>
+  function trackGaEvent(eventName, params = {}) {
+    if (typeof window.gtag !== "function") return;
+
+    window.gtag("event", eventName, {
+      page_location: window.location.href,
+      page_title: document.title,
+      ...params
+    });
+  }
+</script>
 </body>
 </html>
