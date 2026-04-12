@@ -318,7 +318,17 @@
 
   <script>
     const SITE_ORIGIN = "https://www.keysearch-app.com";
-    let currentArticle = null;
+let currentArticle = null;
+
+function trackGaEvent(eventName, params = {}) {
+  if (typeof window.gtag !== "function") return;
+
+  window.gtag("event", eventName, {
+    page_location: window.location.href,
+    page_title: document.title,
+    ...params
+  });
+}
 
     function getSlug() {
       const params = new URLSearchParams(window.location.search);
@@ -687,16 +697,34 @@ function bindShareButtons(article) {
 
   document.getElementById("share-facebook").onclick = async () => {
     await copyText(facebookText, "已複製 FB 貼文");
+    trackGaEvent("share_article", {
+      method: "facebook",
+      article_id: article.id,
+      article_slug: article.slug || "",
+      article_title: article.title || ""
+    });
     openPlatform("facebook");
   };
 
   document.getElementById("share-x").onclick = async () => {
     await copyText(xText, "已複製 X 貼文");
+    trackGaEvent("share_article", {
+      method: "x",
+      article_id: article.id,
+      article_slug: article.slug || "",
+      article_title: article.title || ""
+    });
     openPlatform("x");
   };
 
   document.getElementById("share-linkedin").onclick = async () => {
     await copyText(linkedinText, "已複製 LinkedIn 貼文");
+    trackGaEvent("share_article", {
+      method: "linkedin",
+      article_id: article.id,
+      article_slug: article.slug || "",
+      article_title: article.title || ""
+    });
     openPlatform("linkedin");
   };
 
@@ -704,21 +732,45 @@ function bindShareButtons(article) {
   if (threadsBtn) {
     threadsBtn.onclick = async () => {
       await copyText(threadsText, "已複製 Threads 貼文");
+      trackGaEvent("share_article", {
+        method: "threads",
+        article_id: article.id,
+        article_slug: article.slug || "",
+        article_title: article.title || ""
+      });
       openPlatform("threads");
     };
   }
 
   document.getElementById("share-line").onclick = async () => {
     await copyText(lineText, "已複製 LINE 貼文");
+    trackGaEvent("share_article", {
+      method: "line",
+      article_id: article.id,
+      article_slug: article.slug || "",
+      article_title: article.title || ""
+    });
     openPlatform("line");
   };
 
   document.getElementById("copy-full-article").onclick = async () => {
     await copyText(fullText, "已複製全文");
+    trackGaEvent("copy_article_content", {
+      method: "full_text",
+      article_id: article.id,
+      article_slug: article.slug || "",
+      article_title: article.title || ""
+    });
   };
 
   document.getElementById("share-copy").onclick = async () => {
     await copyText(articleUrl, "已複製連結");
+    trackGaEvent("share_article", {
+      method: "copy_link",
+      article_id: article.id,
+      article_slug: article.slug || "",
+      article_title: article.title || ""
+    });
   };
 }
 
@@ -771,41 +823,49 @@ function bindShareButtons(article) {
     }
 
     function bindForm(article) {
-      const form = document.getElementById("lead-form");
-      if (!form || !article) return;
+  const form = document.getElementById("lead-form");
+  if (!form || !article) return;
 
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        const formData = new FormData(form);
-        const status = formData.get("status");
-        const website = formData.get("website");
-        const message = formData.get("message");
+    const formData = new FormData(form);
+    const status = formData.get("status");
+    const website = formData.get("website");
+    const message = formData.get("message");
 
-        const mergedMessage = [
-          website ? `網站：${website}` : "",
-          status ? `目前狀況：${status}` : "",
-          message ? `需求：${message}` : ""
-        ].filter(Boolean).join("\n");
+    const mergedMessage = [
+      website ? `網站：${website}` : "",
+      status ? `目前狀況：${status}` : "",
+      message ? `需求：${message}` : ""
+    ].filter(Boolean).join("\n");
 
-        try {
-          await ArticleStore.createLead({
-            name: formData.get("name"),
-            contactValue: formData.get("contact"),
-            message: mergedMessage,
-            sourceArticleId: article.id,
-            sourceArticleTitle: article.title,
-            sourceChannel: getSource()
-          });
-
-          showLeadSuccessModal();
-          form.reset();
-        } catch (error) {
-          console.error("送出詢問失敗：", error);
-          alert(`送出失敗：${error.message}`);
-        }
+    try {
+      await ArticleStore.createLead({
+        name: formData.get("name"),
+        contactValue: formData.get("contact"),
+        message: mergedMessage,
+        sourceArticleId: article.id,
+        sourceArticleTitle: article.title,
+        sourceChannel: getSource()
       });
+
+      trackGaEvent("generate_lead", {
+        article_id: article.id,
+        article_slug: article.slug || "",
+        article_title: article.title || "",
+        lead_source: getSource(),
+        form_name: "article_lead_form"
+      });
+
+      showLeadSuccessModal();
+      form.reset();
+    } catch (error) {
+      console.error("送出詢問失敗：", error);
+      alert(`送出失敗：${error.message}`);
     }
+  });
+}
 
     function showLeadSuccessModal() {
       const modal = document.getElementById("lead-success-modal");
@@ -863,6 +923,12 @@ function bindShareButtons(article) {
       }
 
       await trackPageView(article);
+      trackGaEvent("view_article_detail", {
+  article_id: article.id,
+  article_slug: article.slug || "",
+  article_title: article.title || "",
+  content_group: "article"
+});
       await renderRelatedArticles(article.slug);
       bindForm(article);
     }
