@@ -1,6 +1,17 @@
 const contactForm = document.getElementById("contactForm");
 const contactSubmitBtn = document.getElementById("contactSubmitBtn");
 const contactFormStatus = document.getElementById("contactFormStatus");
+const lineContactBtn = document.querySelector('a[href*="line.me"]');
+
+function trackGaEvent(eventName, params = {}) {
+  if (typeof window.gtag !== "function") return;
+
+  window.gtag("event", eventName, {
+    page_location: window.location.href,
+    page_title: document.title,
+    ...params
+  });
+}
 
 function getContactMessage(type) {
   const lang = window.getCurrentLang ? window.getCurrentLang() : "zh-TW";
@@ -53,6 +64,12 @@ async function submitContactForm(event) {
   if (!contactForm.checkValidity()) {
     contactForm.reportValidity();
     setStatus("error", getContactMessage("invalid"));
+
+    trackGaEvent("form_validation_error", {
+      form_name: "contact_form",
+      page_type: "contact_page"
+    });
+
     return;
   }
 
@@ -74,12 +91,31 @@ async function submitContactForm(event) {
 
     if (response.ok && result.success) {
       setStatus("success", getContactMessage("success"));
+
+      trackGaEvent("generate_lead", {
+        form_name: "contact_form",
+        lead_type: "book_demo",
+        page_type: "contact_page"
+      });
+
       contactForm.reset();
     } else {
       setStatus("error", result.message || getContactMessage("error"));
+
+      trackGaEvent("form_submit_error", {
+        form_name: "contact_form",
+        page_type: "contact_page",
+        error_message: result.message || "submit_failed"
+      });
     }
   } catch (error) {
     setStatus("error", getContactMessage("error"));
+
+    trackGaEvent("form_submit_error", {
+      form_name: "contact_form",
+      page_type: "contact_page",
+      error_message: error?.message || "network_error"
+    });
   } finally {
     setSubmittingState(false);
   }
@@ -87,4 +123,13 @@ async function submitContactForm(event) {
 
 if (contactForm) {
   contactForm.addEventListener("submit", submitContactForm);
+}
+
+if (lineContactBtn) {
+  lineContactBtn.addEventListener("click", () => {
+    trackGaEvent("contact_click", {
+      method: "line",
+      page_type: "contact_page"
+    });
+  });
 }
