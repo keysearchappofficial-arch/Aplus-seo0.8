@@ -1,3 +1,34 @@
+const GA_MEASUREMENT_ID = "G-ZWC50XN0X0";
+
+function initGoogleAnalytics() {
+  if (!GA_MEASUREMENT_ID) return;
+
+  // 避免重複初始化
+  if (window.__ga_initialized__) return;
+  window.__ga_initialized__ = true;
+
+  const existingScript = document.querySelector(
+    `script[src*="googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"]`
+  );
+
+  if (!existingScript) {
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+    document.head.appendChild(script);
+  }
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function () {
+    window.dataLayer.push(arguments);
+  };
+
+  window.gtag("js", new Date());
+  window.gtag("config", GA_MEASUREMENT_ID, {
+    page_path: window.location.pathname + window.location.search
+  });
+}
+
 async function loadComponent(selector, path) {
   const mountNode = document.querySelector(selector);
   if (!mountNode) return null;
@@ -41,7 +72,6 @@ function toggleBlogNav(headerRoot) {
   const blogLink = headerRoot.querySelector("[data-blog-link]");
   if (!blogLink) return;
 
-  // 英文站隱藏文章
   if (isEnglishPage()) {
     blogLink.style.display = "none";
   } else {
@@ -108,7 +138,6 @@ function bindLangSwitcher(headerRoot) {
     return;
   }
 
-  // 中文文章頁 / 文章列表頁 → 切英文直接回英文首頁
   if (blogPage) {
     const blogEnFallback = body.dataset.blogEnFallback || "./en/index.html";
     langLink.setAttribute("href", blogEnFallback);
@@ -117,7 +146,6 @@ function bindLangSwitcher(headerRoot) {
     return;
   }
 
-  // 中文一般頁 → 正常切英文對應頁
   const enUrl = body.dataset.enUrl || "./en/index.html";
   langLink.setAttribute("href", enUrl);
   langLink.textContent = "EN";
@@ -181,6 +209,8 @@ async function initSharedFooter() {
 }
 
 async function initSharedLayout() {
+  initGoogleAnalytics();
+
   await initSharedHeader();
   await initSharedFooter();
 
