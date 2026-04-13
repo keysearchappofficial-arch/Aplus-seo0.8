@@ -529,189 +529,200 @@
   </div>
 
   <script src="./assets/js/layout.js"></script>
-  <script>
-    (function () {
-      const modal = document.getElementById("topicModal");
-      const openBtns = [
-        document.getElementById("openTopicModalBtn"),
-        document.getElementById("openTopicModalBtnBottom")
-      ].filter(Boolean);
+<script>
+  (function () {
+    const API_BASE =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000"
+        : "https://recall-alternatively-harper-nickel.trycloudflare.com";
 
-      const closeBtn = document.getElementById("closeTopicModalBtn");
-      const form = document.getElementById("topicGenerateForm");
-      const resetBtn = document.getElementById("resetTopicBtn");
-      const submitBtn = document.getElementById("submitTopicBtn");
-      const loadingBox = document.getElementById("topicLoading");
-      const errorBox = document.getElementById("topicError");
-      const resultsBox = document.getElementById("topicResults");
+    const modal = document.getElementById("topicModal");
+    const openBtns = [
+      document.getElementById("openTopicModalBtn"),
+      document.getElementById("openTopicModalBtnBottom")
+    ].filter(Boolean);
 
-      function openModal() {
-        modal.classList.add("is-open");
-        modal.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
-      }
+    const closeBtn = document.getElementById("closeTopicModalBtn");
+    const form = document.getElementById("topicGenerateForm");
+    const resetBtn = document.getElementById("resetTopicBtn");
+    const submitBtn = document.getElementById("submitTopicBtn");
+    const loadingBox = document.getElementById("topicLoading");
+    const errorBox = document.getElementById("topicError");
+    const resultsBox = document.getElementById("topicResults");
 
-      function closeModal() {
-        modal.classList.remove("is-open");
-        modal.setAttribute("aria-hidden", "true");
-        document.body.style.overflow = "";
-      }
+    function openModal() {
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
 
-      function setLoading(isLoading) {
-        loadingBox.classList.toggle("is-show", isLoading);
-        submitBtn.disabled = isLoading;
-        submitBtn.textContent = isLoading ? "生成中..." : "開始生成";
-      }
+    function closeModal() {
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
 
-      function setError(message = "") {
-        errorBox.textContent = message;
-        errorBox.classList.toggle("is-show", Boolean(message));
-      }
+    function setLoading(isLoading) {
+      loadingBox.classList.toggle("is-show", isLoading);
+      submitBtn.disabled = isLoading;
+      submitBtn.textContent = isLoading ? "生成中..." : "開始生成";
+    }
 
-      function escapeHtml(text) {
-        return String(text || "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
+    function setError(message = "") {
+      errorBox.textContent = message;
+      errorBox.classList.toggle("is-show", Boolean(message));
+    }
 
-      function renderTopics(topics) {
-        if (!Array.isArray(topics) || topics.length === 0) {
-          resultsBox.innerHTML = `
-            <div class="topic-results__empty">
-              這次沒有產出主題，請調整條件後再試一次。
-            </div>
-          `;
-          return;
-        }
+    function escapeHtml(text) {
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
 
-        resultsBox.innerHTML = `
-          <div class="topic-results__list">
-            ${topics.map((item, index) => `
-              <article class="topic-card">
-                <div class="topic-card__top">
-                  <span class="topic-badge">#${index + 1}</span>
-                  <span class="topic-badge">${escapeHtml(item.category || "未分類")}</span>
-                  <span class="topic-badge">${escapeHtml(item.intent || "資訊型")}</span>
-                </div>
-
-                <h3>${escapeHtml(item.title || "")}</h3>
-                <p>${escapeHtml(item.reason || "適合作為 SEO 內容主題，能延伸成文章與關鍵字頁。")}</p>
-
-                <div class="topic-card__actions">
-                  <button type="button" class="topic-mini-btn" data-copy="${escapeHtml(item.title || "")}">
-                    複製題目
-                  </button>
-                  <button type="button" class="topic-mini-btn" data-fill-article="${escapeHtml(item.title || "")}">
-                    帶去產文
-                  </button>
-                </div>
-              </article>
-            `).join("")}
-          </div>
-        `;
-      }
-
-      async function generateTopics(payload) {
-        const response = await fetch("http://localhost:3000/api/ollama/topics", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result?.message || "產題失敗，請稍後再試。");
-        }
-
-        return result;
-      }
-
-      openBtns.forEach((btn) => {
-        btn.addEventListener("click", openModal);
-      });
-
-      closeBtn.addEventListener("click", closeModal);
-
-      modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-          closeModal();
-        }
-      });
-
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && modal.classList.contains("is-open")) {
-          closeModal();
-        }
-      });
-
-      resetBtn.addEventListener("click", () => {
-        form.reset();
-        setError("");
+    function renderTopics(topics) {
+      if (!Array.isArray(topics) || topics.length === 0) {
         resultsBox.innerHTML = `
           <div class="topic-results__empty">
-            輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。
+            這次沒有產出主題，請調整條件後再試一次。
           </div>
         `;
+        return;
+      }
+
+      resultsBox.innerHTML = `
+        <div class="topic-results__list">
+          ${topics.map((item, index) => `
+            <article class="topic-card">
+              <div class="topic-card__top">
+                <span class="topic-badge">#${index + 1}</span>
+                <span class="topic-badge">${escapeHtml(item.category || "未分類")}</span>
+                <span class="topic-badge">${escapeHtml(item.intent || "資訊型")}</span>
+              </div>
+
+              <h3>${escapeHtml(item.title || "")}</h3>
+              <p>${escapeHtml(item.reason || "適合作為 SEO 內容主題，能延伸成文章與關鍵字頁。")}</p>
+
+              <div class="topic-card__actions">
+                <button type="button" class="topic-mini-btn" data-copy="${escapeHtml(item.title || "")}">
+                  複製題目
+                </button>
+                <button type="button" class="topic-mini-btn" data-fill-article="${escapeHtml(item.title || "")}">
+                  帶去產文
+                </button>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    async function generateTopics(payload) {
+      const response = await fetch(`${API_BASE}/api/ollama/topics`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
 
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
+      let result = {};
+      try {
+        result = await response.json();
+      } catch (error) {
+        throw new Error("API 回傳格式錯誤，請稍後再試。");
+      }
 
-        setError("");
-        setLoading(true);
+      if (!response.ok) {
+        throw new Error(result?.message || "產題失敗，請稍後再試。");
+      }
 
-        const formData = new FormData(form);
-        const payload = {
-          industry: formData.get("industry")?.toString().trim(),
-          service: formData.get("service")?.toString().trim(),
-          region: formData.get("region")?.toString().trim(),
-          audience: formData.get("audience")?.toString().trim(),
-          tone: formData.get("tone")?.toString().trim(),
-          category: formData.get("category")?.toString().trim(),
-          keywords: formData.get("keywords")?.toString().trim(),
-          count: Number(formData.get("count") || 10)
-        };
+      return result;
+    }
 
+    openBtns.forEach((btn) => {
+      btn.addEventListener("click", openModal);
+    });
+
+    closeBtn.addEventListener("click", closeModal);
+
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("is-open")) {
+        closeModal();
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      form.reset();
+      setError("");
+      resultsBox.innerHTML = `
+        <div class="topic-results__empty">
+          輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。
+        </div>
+      `;
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      setError("");
+      setLoading(true);
+
+      const formData = new FormData(form);
+      const payload = {
+        industry: formData.get("industry")?.toString().trim(),
+        service: formData.get("service")?.toString().trim(),
+        region: formData.get("region")?.toString().trim(),
+        audience: formData.get("audience")?.toString().trim(),
+        tone: formData.get("tone")?.toString().trim(),
+        category: formData.get("category")?.toString().trim(),
+        keywords: formData.get("keywords")?.toString().trim(),
+        count: Number(formData.get("count") || 10)
+      };
+
+      try {
+        const result = await generateTopics(payload);
+        renderTopics(result.topics || []);
+      } catch (error) {
+        setError(error.message || "產題失敗，請稍後再試。");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    resultsBox.addEventListener("click", async (event) => {
+      const copyBtn = event.target.closest("[data-copy]");
+      const articleBtn = event.target.closest("[data-fill-article]");
+
+      if (copyBtn) {
+        const text = copyBtn.getAttribute("data-copy") || "";
         try {
-          const result = await generateTopics(payload);
-          renderTopics(result.topics || []);
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = "已複製";
+          setTimeout(() => {
+            copyBtn.textContent = "複製題目";
+          }, 1200);
         } catch (error) {
-          setError(error.message || "產題失敗，請稍後再試。");
-        } finally {
-          setLoading(false);
+          console.error("複製失敗：", error);
         }
-      });
+      }
 
-      resultsBox.addEventListener("click", async (event) => {
-        const copyBtn = event.target.closest("[data-copy]");
-        const articleBtn = event.target.closest("[data-fill-article]");
-
-        if (copyBtn) {
-          const text = copyBtn.getAttribute("data-copy") || "";
-          try {
-            await navigator.clipboard.writeText(text);
-            copyBtn.textContent = "已複製";
-            setTimeout(() => {
-              copyBtn.textContent = "複製題目";
-            }, 1200);
-          } catch (error) {
-            console.error("複製失敗：", error);
-          }
-        }
-
-        if (articleBtn) {
-          const topic = articleBtn.getAttribute("data-fill-article") || "";
-          const targetUrl = `./seo-content.html?topic=${encodeURIComponent(topic)}`;
-          window.location.href = targetUrl;
-        }
-      });
-    })();
-  </script>
+      if (articleBtn) {
+        const topic = articleBtn.getAttribute("data-fill-article") || "";
+        const targetUrl = `./seo-content.html?topic=${encodeURIComponent(topic)}`;
+        window.location.href = targetUrl;
+      }
+    });
+  })();
+</script>
 </body>
 </html>
