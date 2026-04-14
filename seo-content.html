@@ -660,202 +660,165 @@
 
   <script src="./assets/js/layout.js"></script>
 <script>
-  (function () {
-    const API_BASE =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-        ? "http://localhost:3000"
-        : "https://api.keysearch-app.com";
+(function () {
+  const API_BASE =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+      ? "http://localhost:3000"
+      : "https://api.keysearch-app.com";
 
-    const API_KEY =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-        ? "aplus_seo_admin_2026_secure_token"
-        : "aplus_seo_admin_2026_secure_token";
+  const API_KEY =
+    "aplus_seo_admin_2026_secure_token";
 
-    const modal = document.getElementById("articleModal");
-    const openBtns = [
-      document.getElementById("openArticleModalBtn"),
-      document.getElementById("openArticleModalBtnBottom")
-    ].filter(Boolean);
+  const USAGE_KEY = "article_generate_usage_v1";
+  const CTA_TRIGGER_COUNT = 4;
 
-    const closeBtn = document.getElementById("closeArticleModalBtn");
-    const form = document.getElementById("articleGenerateForm");
-    const resetBtn = document.getElementById("resetArticleBtn");
-    const submitBtn = document.getElementById("submitArticleBtn");
-    const loadingBox = document.getElementById("articleLoading");
-    const errorBox = document.getElementById("articleError");
-    const previewBox = document.getElementById("articlePreview");
-    const topicInput = document.getElementById("articleTopic");
-    const toggleAdvancedBtn = document.getElementById("toggleAdvancedBtn");
-    const advancedFields = document.getElementById("advancedFields");
+  const modal = document.getElementById("articleModal");
+  const form = document.getElementById("articleGenerateForm");
+  const submitBtn = document.getElementById("submitArticleBtn");
+  const loadingBox = document.getElementById("articleLoading");
+  const errorBox = document.getElementById("articleError");
+  const previewBox = document.getElementById("articlePreview");
+  const topicInput = document.getElementById("articleTopic");
 
-    let isAdvancedOpen = false;
+  function getTodayKey() {
+    const now = new Date();
+    return now.toISOString().slice(0, 10);
+  }
 
-    function getTopicFromQuery() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("topic") || "";
-    }
-
-    function openModal() {
-      modal.classList.add("is-open");
-      modal.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeModal() {
-      modal.classList.remove("is-open");
-      modal.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-    }
-
-    function setLoading(isLoading) {
-      loadingBox.classList.toggle("is-show", isLoading);
-      submitBtn.disabled = isLoading;
-      submitBtn.textContent = isLoading ? "生成中..." : "開始生成";
-    }
-
-    function setError(message = "") {
-      errorBox.textContent = message;
-      errorBox.classList.toggle("is-show", Boolean(message));
-    }
-
-    function escapeHtml(text) {
-      return String(text || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    function formatInline(text = "") {
-      return escapeHtml(text)
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    }
-
-    function renderBody(content = "") {
-      if (!content) return "<p>目前沒有可顯示的文章內容。</p>";
-
-      const lines = String(content)
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      let html = "";
-      let inList = false;
-
-      for (const line of lines) {
-        if (line.startsWith("## ")) {
-          if (inList) html += "</ul>";
-          inList = false;
-          html += `<h2>${formatInline(line.replace(/^## /, ""))}</h2>`;
-          continue;
-        }
-
-        if (line.startsWith("### ")) {
-          if (inList) html += "</ul>";
-          inList = false;
-          html += `<h3>${formatInline(line.replace(/^### /, ""))}</h3>`;
-          continue;
-        }
-
-        if (line.startsWith("- ") || line.startsWith("* ")) {
-          if (!inList) {
-            html += "<ul>";
-            inList = true;
-          }
-          html += `<li>${formatInline(line.replace(/^[-*] /, ""))}</li>`;
-          continue;
-        }
-
-        if (inList) {
-          html += "</ul>";
-          inList = false;
-        }
-
-        html += `<p>${formatInline(line)}</p>`;
+  function getUsage() {
+    try {
+      const raw = localStorage.getItem(USAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      if (parsed.date !== getTodayKey()) {
+        return { date: getTodayKey(), count: 0 };
       }
-
-      if (inList) html += "</ul>";
-
-      return html;
+      return parsed;
+    } catch {
+      return { date: getTodayKey(), count: 0 };
     }
+  }
 
-    function renderArticle(article) {
-      if (!article) {
-        previewBox.innerHTML = `<div class="article-preview__empty">目前沒有可顯示的文章內容。</div>`;
-        return;
-      }
+  function increaseUsage() {
+    const state = getUsage();
+    const next = { date: getTodayKey(), count: state.count + 1 };
+    localStorage.setItem(USAGE_KEY, JSON.stringify(next));
+    return next.count;
+  }
 
-      const { title, summary, body, seoTitle, seoDescription } = article;
+  function showPopup() {
+    if (document.getElementById("articlePopup")) return;
 
-      previewBox.innerHTML = `
-        <h1>${escapeHtml(title)}</h1>
-        <p>${escapeHtml(summary)}</p>
-        <div>${renderBody(body)}</div>
-      `;
-    }
+    const el = document.createElement("div");
+    el.id = "articlePopup";
 
-    async function generateArticle(payload) {
-      const response = await fetch(`${API_BASE}/api/ollama/article`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": API_KEY
-        },
-        body: JSON.stringify(payload)
-      });
+    el.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="background:#fff;padding:28px;border-radius:20px;max-width:420px;text-align:center;">
+          <h3 style="margin-bottom:10px;">你已多次體驗 AI 產文</h3>
+          <p style="color:#555;line-height:1.8;">
+            如果你想持續產文、做 SEO 流量成長，
+            我們可以幫你建立完整系統。
+          </p>
 
-      let result = {};
-      try {
-        result = await response.json();
-      } catch (error) {
-        throw new Error("API 回傳格式錯誤");
-      }
+          <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
+            <a href="./contact.html" class="btn btn--primary">聯繫我們</a>
+            <button id="closePopup" class="btn btn--ghost">關閉</button>
+          </div>
+        </div>
+      </div>
+    `;
 
-      if (!response.ok) {
-        throw new Error(result?.message || "產文失敗");
-      }
+    document.body.appendChild(el);
 
-      return result;
-    }
+    document.getElementById("closePopup").onclick = () => el.remove();
+  }
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
+  function setLoading(v) {
+    loadingBox.classList.toggle("is-show", v);
+    submitBtn.disabled = v;
+  }
 
-      setError("");
-      setLoading(true);
+  function setError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.toggle("is-show", !!msg);
+  }
 
-      const formData = new FormData(form);
+  function escape(text) {
+    return String(text || "")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
 
-      const payload = {
-        topic: formData.get("topic"),
-        industry: formData.get("industry"),
-        service: formData.get("service"),
-        region: formData.get("region"),
-        audience: formData.get("audience"),
-        tone: formData.get("tone"),
-        length: formData.get("length"),
-        keywords: formData.get("keywords")
-      };
+  function renderArticle(article) {
+    previewBox.innerHTML = `
+      <h1>${escape(article.title)}</h1>
+      <p>${escape(article.summary)}</p>
+      <div style="line-height:1.9;">${escape(article.body)}</div>
+    `;
+  }
 
-      try {
-        const result = await generateArticle(payload);
-        renderArticle(result.article);
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
+  async function generate(payload) {
+    const res = await fetch(`${API_BASE}/api/ollama/article`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY
+      },
+      body: JSON.stringify(payload)
     });
 
-    const topicFromQuery = getTopicFromQuery();
-    if (topicFromQuery) {
-      topicInput.value = topicFromQuery;
-      openModal();
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || "產文失敗");
+
+    return data;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    const fd = new FormData(form);
+
+    const payload = {
+      topic: fd.get("topic"),
+      industry: fd.get("industry"),
+      service: fd.get("service"),
+      region: fd.get("region"),
+      audience: fd.get("audience"),
+      tone: fd.get("tone"),
+      length: fd.get("length"),
+      keywords: fd.get("keywords")
+    };
+
+    try {
+      const result = await generate(payload);
+
+      renderArticle(result.article);
+
+      const count = increaseUsage();
+
+      // ⭐ 關鍵：第4次開始跳
+      if (count >= CTA_TRIGGER_COUNT) {
+        setTimeout(showPopup, 400);
+      }
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  })();
+  });
+
+  const topicFromQuery = new URLSearchParams(location.search).get("topic");
+  if (topicFromQuery) {
+    topicInput.value = topicFromQuery;
+  }
+
+})();
 </script>
 </body>
 </html>
