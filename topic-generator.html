@@ -1,3 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>AI SEO 文章生成｜自動產出標題、內文與 SEO 欄位｜Aplus AI SEO</title>
+  <meta
+    name="description"
+    content="使用 AI 自動生成 SEO 結構文章，從標題、摘要、內文到 SEO Title 與 SEO Description 一次完成，加快內容產出效率。"
+  />
+  <meta
+    name="keywords"
+    content="AI SEO 文章生成, SEO文章生成, AI寫文章, SEO Title, SEO Description, 內容生成, AI內容工具, Aplus AI SEO"
+  />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+
+  <link rel="canonical" href="https://www.keysearch-app.com/seo-content.html" />
+  <link rel="alternate" hreflang="zh-Hant" href="https://www.keysearch-app.com/seo-content.html" />
+  <link rel="alternate" hreflang="zh-TW" href="https://www.keysearch-app.com/seo-content.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.keysearch-app.com/seo-content.html" />
+
+  <meta property="og:locale" content="zh_TW" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Aplus AI SEO" />
+  <meta property="og:title" content="AI SEO 文章生成｜自動產出標題、內文與 SEO 欄位" />
+  <meta
+    property="og:description"
+    content="從主題到文章一次完成，AI 自動生成適合 SEO 的標題、摘要、內文與 SEO 欄位，讓內容產出更快、更有結構。"
+  />
+  <meta property="og:url" content="https://www.keysearch-app.com/seo-content.html" />
+  <meta property="og:image" content="https://www.keysearch-app.com/assets/images/og/seo-content-og.jpg" />
+  <meta property="og:image:alt" content="Aplus AI SEO 文章生成頁面視覺" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AI SEO 文章生成｜自動產出標題、內文與 SEO 欄位" />
+  <meta
+    name="twitter:description"
+    content="AI 自動生成 SEO 結構文章，從標題、摘要、內文到 SEO 欄位一次完成。"
+  />
+  <meta name="twitter:image" content="https://www.keysearch-app.com/assets/images/og/seo-content-og.jpg" />
+
+  <link rel="stylesheet" href="./css/variables.css" />
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/components.css" />
+
+  <style>
+    .article-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.56);
+      z-index: 9999;
+    }
+
+    .article-modal.is-open {
+      display: flex;
+    }
+
+    .article-modal__dialog {
+      width: 100%;
+      max-width: 1120px;
+      height: min(760px, calc(100vh - 40px));
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.24);
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      overflow: hidden;
+    }
+
+    .article-modal__left {
+      padding: 28px;
+      border-right: 1px solid #e2e8f0;
+      background: #f8fafc;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .article-modal__right {
+      padding: 28px;
+      background: #fff;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .article-modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .article-modal__title {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.3;
+      color: #0f172a;
+    }
+
+    .article-modal__close {
+      border: 0;
+      background: transparent;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      color: #475569;
+    }
+
+    .article-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .article-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .article-field label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .article-field input,
+    .article-field select,
+    .article-field textarea {
+      width: 100%;
+      min-height: 46px;
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      font: inherit;
+      color: #0f172a;
+      background: #fff;
+    }
+
+    .article-field textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .article-form__actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .article-status {
+      display: none;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .article-status.is-show {
+      display: block;
+    }
+
+    .article-status--loading {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .article-status--error {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .article-preview__empty {
+      color: #64748b;
+      line-height: 1.8;
+      padding: 28px 20px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 18px;
+      background: #f8fafc;
+    }
+
+    .article-preview__shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .article-output-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+      overflow: hidden;
+    }
+
+    .article-output-card__head {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 14px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .article-output-card__body {
+      padding: 20px;
+    }
+
+    .article-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .article-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .article-title {
+      margin: 0 0 14px;
+      font-size: 30px;
+      line-height: 1.4;
+      color: #0f172a;
+    }
+
+    .article-summary {
+      margin: 0;
+      color: #475569;
+      font-size: 16px;
+      line-height: 1.9;
+    }
+
+    .article-body {
+      color: #1e293b;
+      line-height: 1.95;
+      font-size: 16px;
+    }
+
+    .article-body h2 {
+      margin: 28px 0 12px;
+      font-size: 24px;
+      line-height: 1.45;
+      color: #0f172a;
+    }
+
+    .article-body h3 {
+      margin: 22px 0 10px;
+      font-size: 20px;
+      line-height: 1.5;
+      color: #0f172a;
+    }
+
+    .article-body p {
+      margin: 0 0 16px;
+    }
+
+    .article-body ul,
+    .article-body ol {
+      padding-left: 22px;
+      margin: 0 0 18px;
+    }
+
+    .article-body li {
+      margin-bottom: 8px;
+    }
+
+    .article-body strong {
+      color: #0f172a;
+    }
+
+    .article-seo-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .article-seo-item {
+      padding: 16px;
+      border-radius: 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+
+    .article-seo-item strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    .article-seo-item p {
+      margin: 0;
+      color: #334155;
+      line-height: 1.8;
+      word-break: break-word;
+    }
+
+    .article-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .article-mini-btn {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .article-mini-btn:hover {
+      background: #f8fafc;
+    }
+
+    .article-modal__right::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .article-modal__right::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+    }
+
+    .article-modal__right::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    @media (max-width: 860px) {
+      .article-modal {
+        padding: 12px;
+        align-items: flex-start;
+      }
+
+      .article-modal__dialog {
+        grid-template-columns: 1fr;
+        height: auto;
+        max-height: calc(100vh - 24px);
+      }
+
+      .article-modal__left {
+        border-right: 0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .article-modal__right {
+        max-height: 46vh;
+      }
+
+      .article-title {
+        font-size: 24px;
+      }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "AI SEO 文章生成",
+    "url": "https://www.keysearch-app.com/seo-content.html",
+    "description": "使用 AI 自動生成 SEO 結構文章，從標題、摘要、內文到 SEO 欄位一次完成，加快內容產出效率。",
+    "inLanguage": "zh-Hant",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Aplus AI SEO",
+      "url": "https://www.keysearch-app.com/"
+    }
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Aplus AI SEO 文章生成模組",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "url": "https://www.keysearch-app.com/seo-content.html",
+    "description": "根據主題、產業、地區與語氣，自動生成 SEO 結構文章與 SEO 欄位的 AI 內容模組。"
+  }
+  </script>
+</head>
+
+<body>
+  <div id="site-header"></div>
+
+  <main class="section-shell">
+    <div class="container" style="max-width: 1000px;">
+
+      <section style="padding: 48px 0 24px;">
+        <div style="font-size:13px;color:#64748b;margin-bottom:10px;">
+          AI SEO 模組
+        </div>
+
+        <h1 style="font-size:40px;margin:0 0 16px;">
+          AI SEO 文章生成
+        </h1>
+
+        <p style="font-size:18px;color:#475569;line-height:1.8;margin:0;">
+          從主題到文章，一次完成。
+          AI 自動生成適合 SEO 的標題、摘要、內文與 SEO 欄位，
+          讓內容產出更快、更有結構，也更容易持續更新。
+        </p>
+
+        <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+          <button type="button" class="btn btn--primary" id="openArticleModalBtn">
+            立即開始生成
+          </button>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px;">
+        <div class="card__body">
+          <h2>你是不是遇到這些情況？</h2>
+          <ul style="line-height:1.8;">
+            <li>有主題，但不知道怎麼寫成完整文章</li>
+            <li>每篇文章都花很多時間整理架構</li>
+            <li>AI 產文內容太散、不像真正文章</li>
+            <li>SEO 標題與描述常常忘記補</li>
+            <li>產文速度慢，更新頻率跟不上</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px;">
+        <div class="card__body">
+          <h2>這個模組在做什麼？</h2>
+
+          <p>
+            AI SEO 文章生成模組會根據你輸入的產業、地區、主題與語氣，
+            自動整理出可用的文章內容。
+          </p>
+
+          <p>輸出不只是一段文字，而是包含：</p>
+
+          <ul>
+            <li>文章標題</li>
+            <li>摘要</li>
+            <li>完整內文</li>
+            <li>SEO Title</li>
+            <li>SEO Description</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px;">
+        <div class="card__body">
+          <h2>核心功能</h2>
+
+          <ul>
+            <li>支援產業 / 地區 / 主題 / 語氣設定</li>
+            <li>自動生成可閱讀的文章結構</li>
+            <li>同步輸出 SEO 欄位</li>
+            <li>可直接進入編輯草稿</li>
+            <li>可串接題庫管理與後台發布流程</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px;">
+        <div class="card__body">
+          <h2>使用流程</h2>
+
+          <ol style="line-height:1.8;">
+            <li>從題庫帶入主題，或手動輸入關鍵字</li>
+            <li>設定產業、地區與語氣</li>
+            <li>AI 生成文章內容</li>
+            <li>進入草稿頁調整內容</li>
+            <li>發布到前台文章頁</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px;">
+        <div class="card__body">
+          <h2>這個模組的價值</h2>
+
+          <ul>
+            <li>大幅縮短內容產出時間</li>
+            <li>讓題庫真正變成文章</li>
+            <li>提高網站更新頻率</li>
+            <li>讓 SEO 內容產出可以規模化</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px;margin-bottom:40px;">
+        <div class="card__body">
+          <h2>想更快完成網站內容更新？</h2>
+
+          <p>
+            從 AI 產題到 AI 產文，再到內容管理與發布，
+            建立一套真正能持續運作的 SEO 內容流程。
+          </p>
+
+          <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;">
+            <button type="button" class="btn btn--primary" id="openArticleModalBtnBottom">
+              立即開始生成
+            </button>
+
+            <a href="./topic-generator.html" class="btn btn--ghost">
+              先看產題模組
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <div class="article-modal" id="articleModal" aria-hidden="true">
+    <div class="article-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle">
+      <div class="article-modal__left">
+        <div class="article-modal__header">
+          <h2 class="article-modal__title" id="articleModalTitle">立即開始產文</h2>
+          <button type="button" class="article-modal__close" id="closeArticleModalBtn" aria-label="關閉">×</button>
+        </div>
+
+        <form class="article-form" id="articleGenerateForm">
+          <div style="font-size:13px;color:#64748b;margin-bottom:4px;">
+            快速模式：先輸入主題就能直接生成
+          </div>
+
+          <div class="article-field">
+            <label for="articleTopic">文章主題</label>
+            <input
+              id="articleTopic"
+              name="topic"
+              type="text"
+              placeholder="例如：AI SEO 網站怎麼做？"
+              required
+            />
+          </div>
+
+          <div class="article-field">
+            <label for="articleLength">文章長度</label>
+            <select id="articleLength" name="length">
+              <option value="短">短</option>
+              <option value="中" selected>中</option>
+              <option value="長">長</option>
+            </select>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn--ghost"
+            id="toggleAdvancedBtn"
+            style="justify-content:flex-start;"
+          >
+            進階設定 ▼
+          </button>
+
+          <div id="advancedFields" style="display:none;">
+            <div class="article-field" style="margin-top:16px;">
+              <label for="articleIndustry">產業</label>
+              <input
+                id="articleIndustry"
+                name="industry"
+                type="text"
+                placeholder="例如：SEO 顧問、網站設計、花店"
+              />
+            </div>
+
+            <div class="article-field">
+              <label for="articleService">產品 / 服務</label>
+              <input
+                id="articleService"
+                name="service"
+                type="text"
+                placeholder="例如：AI SEO 網站建置"
+              />
+            </div>
+
+            <div class="article-field">
+              <label for="articleRegion">地區</label>
+              <input
+                id="articleRegion"
+                name="region"
+                type="text"
+                placeholder="例如：台北、台中、全台灣"
+              />
+            </div>
+
+            <div class="article-field">
+              <label for="articleAudience">目標客群</label>
+              <input
+                id="articleAudience"
+                name="audience"
+                type="text"
+                placeholder="例如：中小企業主、品牌經營者"
+              />
+            </div>
+
+            <div class="article-field">
+              <label for="articleTone">語氣</label>
+              <select id="articleTone" name="tone">
+                <option value="專業">專業</option>
+                <option value="商務">商務</option>
+                <option value="教學">教學</option>
+              </select>
+            </div>
+
+            <div class="article-field">
+              <label for="articleKeywords">核心關鍵字</label>
+              <textarea
+                id="articleKeywords"
+                name="keywords"
+                placeholder="例如：AI SEO、SEO網站、內容行銷、自動產文"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="article-form__actions">
+            <button type="submit" class="btn btn--primary" id="submitArticleBtn">
+              開始生成
+            </button>
+            <button type="button" class="btn btn--ghost" id="resetArticleBtn">
+              清空
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="article-modal__right">
+        <div class="article-status article-status--loading" id="articleLoading">
+          AI 正在建立文章架構、摘要與 SEO 欄位，請稍候...
+        </div>
+
+        <div class="article-status article-status--error" id="articleError"></div>
+
+        <div class="article-preview" id="articlePreview">
+          <div class="article-preview__empty">
+            輸入主題、產業與服務後，點擊「開始生成」，這裡就會顯示完整文章預覽、SEO Title 與 SEO Description。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/js/layout.js"></script>
 <script>
   (function () {
     const API_BASE =
@@ -12,8 +672,8 @@
         ? "aplus_seo_admin_2026_secure_token"
         : "aplus_seo_admin_2026_secure_token";
 
-    const DAILY_TOPIC_LIMIT = 3;
-    const TOPIC_LIMIT_STORAGE_KEY = "topic_generate_limit_v1";
+    const TOPIC_USAGE_STORAGE_KEY = "topic_generate_usage_v2";
+    const CTA_TRIGGER_COUNT = 6;
 
     const modal = document.getElementById("topicModal");
     const openBtns = [
@@ -37,9 +697,9 @@
       return `${y}-${m}-${d}`;
     }
 
-    function getTopicLimitState() {
+    function getTopicUsageState() {
       try {
-        const raw = localStorage.getItem(TOPIC_LIMIT_STORAGE_KEY);
+        const raw = localStorage.getItem(TOPIC_USAGE_STORAGE_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         const today = getTodayKey();
 
@@ -56,40 +716,90 @@
       }
     }
 
-    function setTopicLimitState(state) {
-      localStorage.setItem(TOPIC_LIMIT_STORAGE_KEY, JSON.stringify(state));
+    function setTopicUsageState(state) {
+      localStorage.setItem(TOPIC_USAGE_STORAGE_KEY, JSON.stringify(state));
     }
 
-    function getRemainingTopicCount() {
-      const state = getTopicLimitState();
-      return Math.max(0, DAILY_TOPIC_LIMIT - state.count);
-    }
-
-    function canGenerateTopic() {
-      return getRemainingTopicCount() > 0;
-    }
-
-    function consumeTopicQuota() {
-      const state = getTopicLimitState();
+    function increaseTopicUsage() {
+      const state = getTopicUsageState();
       const nextState = {
         ...state,
         count: state.count + 1
       };
-      setTopicLimitState(nextState);
-      return nextState;
+      setTopicUsageState(nextState);
+      return nextState.count;
     }
 
-    function renderLimitReached() {
-      resultsBox.innerHTML = `
-        <div class="topic-results__empty" style="border:1px solid #fde68a;background:#fffbeb;color:#92400e;">
-          <strong style="display:block;margin-bottom:8px;">今日免費體驗次數已用完</strong>
-          你今天已完成 ${DAILY_TOPIC_LIMIT} 次主題生成體驗。<br />
-          如果你想持續建立題庫、銜接 AI 產文，歡迎聯繫我們體驗完整方案。
-          <div style="margin-top:16px;">
-            <a href="./contact.html" class="btn btn--primary">聯繫我們</a>
+    function getTopicUsageCount() {
+      return getTopicUsageState().count;
+    }
+
+    function shouldShowCtaModal(count) {
+      return count >= CTA_TRIGGER_COUNT;
+    }
+
+    function removeLeadPopup() {
+      const existing = document.getElementById("topicLeadPopup");
+      if (existing) existing.remove();
+    }
+
+    function showLeadPopup() {
+      if (document.getElementById("topicLeadPopup")) return;
+
+      const popup = document.createElement("div");
+      popup.id = "topicLeadPopup";
+      popup.innerHTML = `
+        <div style="
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.56);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          z-index: 10000;
+        ">
+          <div style="
+            width: 100%;
+            max-width: 460px;
+            background: #ffffff;
+            border-radius: 22px;
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+            padding: 28px 24px;
+            text-align: center;
+          ">
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 8px;">
+              AI SEO 體驗
+            </div>
+
+            <h3 style="margin: 0 0 12px; font-size: 24px; color: #0f172a;">
+              你已經體驗多次 AI 產題
+            </h3>
+
+            <p style="margin: 0; color: #475569; line-height: 1.9; font-size: 15px;">
+              如果你想持續建立 SEO 題庫、串接 AI 產文、規劃網站內容成長流程，
+              歡迎聯繫我們體驗完整方案。
+            </p>
+
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px;">
+              <a href="./contact.html" class="btn btn--primary">聯繫我們</a>
+              <button type="button" id="closeTopicLeadPopupBtn" class="btn btn--ghost">稍後再看</button>
+            </div>
           </div>
         </div>
       `;
+
+      document.body.appendChild(popup);
+
+      document.getElementById("closeTopicLeadPopupBtn")?.addEventListener("click", () => {
+        removeLeadPopup();
+      });
+
+      popup.addEventListener("click", (event) => {
+        if (event.target === popup.firstElementChild) {
+          removeLeadPopup();
+        }
+      });
     }
 
     function openModal() {
@@ -124,9 +834,25 @@
         .replace(/'/g, "&#039;");
     }
 
+    function renderUsageHint() {
+      const usage = getTopicUsageCount();
+      const ctaHint =
+        usage >= CTA_TRIGGER_COUNT
+          ? `<div style="margin-top:8px;color:#92400e;">你已多次體驗，歡迎聯繫我們了解完整方案。</div>`
+          : "";
+
+      return `
+        <div style="margin-bottom:14px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#475569;font-size:14px;">
+          今日已體驗產題次數：<strong>${usage}</strong>
+          ${ctaHint}
+        </div>
+      `;
+    }
+
     function renderTopics(topics) {
       if (!Array.isArray(topics) || topics.length === 0) {
         resultsBox.innerHTML = `
+          ${renderUsageHint()}
           <div class="topic-results__empty">
             這次沒有產出主題，請調整條件後再試一次。
           </div>
@@ -134,13 +860,8 @@
         return;
       }
 
-      const remaining = getRemainingTopicCount();
-
       resultsBox.innerHTML = `
-        <div style="margin-bottom:14px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#475569;font-size:14px;">
-          今日剩餘免費產題次數：<strong>${remaining}</strong> / ${DAILY_TOPIC_LIMIT}
-        </div>
-
+        ${renderUsageHint()}
         <div class="topic-results__list">
           ${topics.map((item, index) => `
             <article class="topic-card">
@@ -204,8 +925,11 @@
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && modal.classList.contains("is-open")) {
-        closeModal();
+      if (event.key === "Escape") {
+        if (modal.classList.contains("is-open")) {
+          closeModal();
+        }
+        removeLeadPopup();
       }
     });
 
@@ -213,12 +937,10 @@
       form.reset();
       setError("");
 
-      const remaining = getRemainingTopicCount();
-
       resultsBox.innerHTML = `
+        ${renderUsageHint()}
         <div class="topic-results__empty">
-          輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。<br /><br />
-          今日剩餘免費產題次數：<strong>${remaining}</strong> / ${DAILY_TOPIC_LIMIT}
+          輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。
         </div>
       `;
     });
@@ -227,13 +949,6 @@
       event.preventDefault();
 
       setError("");
-
-      if (!canGenerateTopic()) {
-        setError("今日免費產題次數已用完。");
-        renderLimitReached();
-        return;
-      }
-
       setLoading(true);
 
       const formData = new FormData(form);
@@ -250,8 +965,14 @@
 
       try {
         const result = await generateTopics(payload);
-        consumeTopicQuota();
+        const usageCount = increaseTopicUsage();
         renderTopics(result.topics || []);
+
+        if (shouldShowCtaModal(usageCount)) {
+          setTimeout(() => {
+            showLeadPopup();
+          }, 350);
+        }
       } catch (error) {
         setError(error.message || "產題失敗，請稍後再試。");
       } finally {
@@ -284,14 +1005,14 @@
     });
 
     (function initTopicTrialHint() {
-      const remaining = getRemainingTopicCount();
-
       resultsBox.innerHTML = `
+        ${renderUsageHint()}
         <div class="topic-results__empty">
-          輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。<br /><br />
-          今日剩餘免費產題次數：<strong>${remaining}</strong> / ${DAILY_TOPIC_LIMIT}
+          輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。
         </div>
       `;
     })();
   })();
 </script>
+</body>
+</html>
