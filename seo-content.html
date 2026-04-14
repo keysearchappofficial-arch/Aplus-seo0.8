@@ -661,14 +661,12 @@
   <script src="./assets/js/layout.js"></script>
 <script>
 (function () {
+
   const API_BASE =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
       ? "http://localhost:3000"
       : "https://api.keysearch-app.com";
-
-  const API_KEY =
-    "aplus_seo_admin_2026_secure_token";
 
   const USAGE_KEY = "article_generate_usage_v1";
   const CTA_TRIGGER_COUNT = 4;
@@ -681,9 +679,9 @@
   const previewBox = document.getElementById("articlePreview");
   const topicInput = document.getElementById("articleTopic");
 
+  // ===== 使用次數 =====
   function getTodayKey() {
-    const now = new Date();
-    return now.toISOString().slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
   }
 
   function getUsage() {
@@ -715,25 +713,21 @@
     el.innerHTML = `
       <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
         <div style="background:#fff;padding:28px;border-radius:20px;max-width:420px;text-align:center;">
-          <h3 style="margin-bottom:10px;">你已多次體驗 AI 產文</h3>
-          <p style="color:#555;line-height:1.8;">
-            如果你想持續產文、做 SEO 流量成長，
-            我們可以幫你建立完整系統。
+          <h3>你已多次體驗 AI 產文</h3>
+          <p style="color:#555;">
+            想持續產文與 SEO 成長，可以聯繫我們。
           </p>
-
-          <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
+          <div style="margin-top:20px;">
             <a href="./contact.html" class="btn btn--primary">聯繫我們</a>
-            <button id="closePopup" class="btn btn--ghost">關閉</button>
           </div>
         </div>
       </div>
     `;
 
     document.body.appendChild(el);
-
-    document.getElementById("closePopup").onclick = () => el.remove();
   }
 
+  // ===== UI =====
   function setLoading(v) {
     loadingBox.classList.toggle("is-show", v);
     submitBtn.disabled = v;
@@ -744,26 +738,39 @@
     errorBox.classList.toggle("is-show", !!msg);
   }
 
-  function escape(text) {
-    return String(text || "")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+  function renderBody(text = "") {
+    return text
+      .split("\n")
+      .map(line => {
+        if (line.startsWith("## ")) {
+          return `<h2>${line.replace("## ", "")}</h2>`;
+        }
+        if (line.startsWith("### ")) {
+          return `<h3>${line.replace("### ", "")}</h3>`;
+        }
+        if (line.startsWith("- ")) {
+          return `<li>${line.replace("- ", "")}</li>`;
+        }
+        return `<p>${line}</p>`;
+      })
+      .join("");
   }
 
   function renderArticle(article) {
     previewBox.innerHTML = `
-      <h1>${escape(article.title)}</h1>
-      <p>${escape(article.summary)}</p>
-      <div style="line-height:1.9;">${escape(article.body)}</div>
+      <h1>${article.title}</h1>
+      <p>${article.summary}</p>
+      <div>${renderBody(article.body)}</div>
     `;
   }
 
+  // ===== API =====
   async function generate(payload) {
     const res = await fetch(`${API_BASE}/api/ollama/article`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY
+        "Content-Type": "application/json"
+        // ❌ 移除 API KEY
       },
       body: JSON.stringify(payload)
     });
@@ -775,6 +782,7 @@
     return data;
   }
 
+  // ===== submit =====
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -801,7 +809,6 @@
 
       const count = increaseUsage();
 
-      // ⭐ 關鍵：第4次開始跳
       if (count >= CTA_TRIGGER_COUNT) {
         setTimeout(showPopup, 400);
       }
@@ -813,9 +820,17 @@
     }
   });
 
+  // ===== 帶入 topic =====
   const topicFromQuery = new URLSearchParams(location.search).get("topic");
-  if (topicFromQuery) {
+
+  if (topicFromQuery && topicInput) {
     topicInput.value = topicFromQuery;
+
+    // 🔥 自動打開 modal（關鍵）
+    if (modal) {
+      modal.classList.add("is-open");
+      document.body.style.overflow = "hidden";
+    }
   }
 
 })();
