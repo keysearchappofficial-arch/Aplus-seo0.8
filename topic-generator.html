@@ -536,7 +536,13 @@
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1"
         ? "http://localhost:3000"
-        : "https://recall-alternatively-harper-nickel.trycloudflare.com";
+        : "https://api.keysearch-app.com";
+
+    const API_KEY =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+        ? "aplus_seo_admin_2026_secure_token"
+        : "aplus_seo_admin_2026_secure_token";
 
     const modal = document.getElementById("topicModal");
     const openBtns = [
@@ -625,7 +631,8 @@
       const response = await fetch(`${API_BASE}/api/ollama/topics`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY
         },
         body: JSON.stringify(payload)
       });
