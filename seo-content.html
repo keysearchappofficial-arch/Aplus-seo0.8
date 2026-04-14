@@ -665,7 +665,13 @@
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1"
         ? "http://localhost:3000"
-        : "https://recall-alternatively-harper-nickel.trycloudflare.com";
+        : "https://api.keysearch-app.com";
+
+    const API_KEY =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+        ? "aplus_seo_admin_2026_secure_token"
+        : "aplus_seo_admin_2026_secure_token";
 
     const modal = document.getElementById("articleModal");
     const openBtns = [
@@ -741,19 +747,15 @@
 
       for (const line of lines) {
         if (line.startsWith("## ")) {
-          if (inList) {
-            html += "</ul>";
-            inList = false;
-          }
+          if (inList) html += "</ul>";
+          inList = false;
           html += `<h2>${formatInline(line.replace(/^## /, ""))}</h2>`;
           continue;
         }
 
         if (line.startsWith("### ")) {
-          if (inList) {
-            html += "</ul>";
-            inList = false;
-          }
+          if (inList) html += "</ul>";
+          inList = false;
           html += `<h3>${formatInline(line.replace(/^### /, ""))}</h3>`;
           continue;
         }
@@ -775,129 +777,32 @@
         html += `<p>${formatInline(line)}</p>`;
       }
 
-      if (inList) {
-        html += "</ul>";
-      }
+      if (inList) html += "</ul>";
 
       return html;
     }
 
     function renderArticle(article) {
       if (!article) {
-        previewBox.innerHTML = `
-          <div class="article-preview__empty">
-            目前沒有可顯示的文章內容。
-          </div>
-        `;
+        previewBox.innerHTML = `<div class="article-preview__empty">目前沒有可顯示的文章內容。</div>`;
         return;
       }
 
-      const title = article.title || "未命名文章";
-      const summary = article.summary || "";
-      const body = article.body || "";
-      const seoTitle = article.seoTitle || "";
-      const seoDescription = article.seoDescription || "";
+      const { title, summary, body, seoTitle, seoDescription } = article;
 
       previewBox.innerHTML = `
-        <div class="article-preview__shell">
-          <section class="article-output-card">
-            <div class="article-output-card__head">文章預覽</div>
-            <div class="article-output-card__body">
-              <div class="article-meta">
-                <span class="article-badge">AI 文章</span>
-                <span class="article-badge">SEO 結構化</span>
-              </div>
-              <h1 class="article-title">${escapeHtml(title)}</h1>
-              <p class="article-summary">${escapeHtml(summary)}</p>
-            </div>
-          </section>
-
-          <section class="article-output-card">
-            <div class="article-output-card__head">文章內文</div>
-            <div class="article-output-card__body">
-              <div class="article-body">
-                ${renderBody(body)}
-              </div>
-            </div>
-          </section>
-
-          <section class="article-output-card">
-            <div class="article-output-card__head">SEO 欄位</div>
-            <div class="article-output-card__body">
-              <div class="article-seo-grid">
-                <div class="article-seo-item">
-                  <strong>SEO Title</strong>
-                  <p>${escapeHtml(seoTitle)}</p>
-                </div>
-                <div class="article-seo-item">
-                  <strong>SEO Description</strong>
-                  <p>${escapeHtml(seoDescription)}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="article-actions">
-            <button type="button" class="article-mini-btn" id="copyArticleTitleBtn">複製標題</button>
-            <button type="button" class="article-mini-btn" id="copyArticleBodyBtn">複製內文</button>
-            <button type="button" class="article-mini-btn" id="copySeoBtn">複製 SEO 欄位</button>
-          </section>
-        </div>
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(summary)}</p>
+        <div>${renderBody(body)}</div>
       `;
-
-      const copyTitleBtn = document.getElementById("copyArticleTitleBtn");
-      const copyBodyBtn = document.getElementById("copyArticleBodyBtn");
-      const copySeoBtn = document.getElementById("copySeoBtn");
-
-      if (copyTitleBtn) {
-        copyTitleBtn.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(title);
-            copyTitleBtn.textContent = "已複製";
-            setTimeout(() => {
-              copyTitleBtn.textContent = "複製標題";
-            }, 1200);
-          } catch (error) {
-            console.error("複製標題失敗：", error);
-          }
-        });
-      }
-
-      if (copyBodyBtn) {
-        copyBodyBtn.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(body);
-            copyBodyBtn.textContent = "已複製";
-            setTimeout(() => {
-              copyBodyBtn.textContent = "複製內文";
-            }, 1200);
-          } catch (error) {
-            console.error("複製內文失敗：", error);
-          }
-        });
-      }
-
-      if (copySeoBtn) {
-        copySeoBtn.addEventListener("click", async () => {
-          try {
-            const seoText = `SEO Title: ${seoTitle}\nSEO Description: ${seoDescription}`;
-            await navigator.clipboard.writeText(seoText);
-            copySeoBtn.textContent = "已複製";
-            setTimeout(() => {
-              copySeoBtn.textContent = "複製 SEO 欄位";
-            }, 1200);
-          } catch (error) {
-            console.error("複製 SEO 欄位失敗：", error);
-          }
-        });
-      }
     }
 
     async function generateArticle(payload) {
       const response = await fetch(`${API_BASE}/api/ollama/article`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY
         },
         body: JSON.stringify(payload)
       });
@@ -906,52 +811,15 @@
       try {
         result = await response.json();
       } catch (error) {
-        throw new Error("API 回傳格式錯誤，請稍後再試。");
+        throw new Error("API 回傳格式錯誤");
       }
 
       if (!response.ok) {
-        throw new Error(result?.message || "產文失敗，請稍後再試。");
+        throw new Error(result?.message || "產文失敗");
       }
 
       return result;
     }
-
-    openBtns.forEach((btn) => {
-      btn.addEventListener("click", openModal);
-    });
-
-    closeBtn.addEventListener("click", closeModal);
-
-    modal.addEventListener("click", (event) => {
-      if (event.target === modal) {
-        closeModal();
-      }
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && modal.classList.contains("is-open")) {
-        closeModal();
-      }
-    });
-
-    resetBtn.addEventListener("click", () => {
-      form.reset();
-
-      const topicFromQuery = getTopicFromQuery();
-      if (topicFromQuery) topicInput.value = topicFromQuery;
-
-      setError("");
-
-      advancedFields.style.display = "none";
-      isAdvancedOpen = false;
-      toggleAdvancedBtn.textContent = "進階設定 ▼";
-
-      previewBox.innerHTML = `
-        <div class="article-preview__empty">
-          輸入文章主題後，點擊「開始生成」，這裡就會顯示完整文章預覽、SEO Title 與 SEO Description。
-        </div>
-      `;
-    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -960,31 +828,26 @@
       setLoading(true);
 
       const formData = new FormData(form);
+
       const payload = {
-        topic: formData.get("topic")?.toString().trim(),
-        industry: formData.get("industry")?.toString().trim(),
-        service: formData.get("service")?.toString().trim(),
-        region: formData.get("region")?.toString().trim(),
-        audience: formData.get("audience")?.toString().trim(),
-        tone: formData.get("tone")?.toString().trim(),
-        length: formData.get("length")?.toString().trim(),
-        keywords: formData.get("keywords")?.toString().trim()
+        topic: formData.get("topic"),
+        industry: formData.get("industry"),
+        service: formData.get("service"),
+        region: formData.get("region"),
+        audience: formData.get("audience"),
+        tone: formData.get("tone"),
+        length: formData.get("length"),
+        keywords: formData.get("keywords")
       };
 
       try {
         const result = await generateArticle(payload);
-        renderArticle(result.article || null);
+        renderArticle(result.article);
       } catch (error) {
-        setError(error.message || "產文失敗，請稍後再試。");
+        setError(error.message);
       } finally {
         setLoading(false);
       }
-    });
-
-    toggleAdvancedBtn.addEventListener("click", () => {
-      isAdvancedOpen = !isAdvancedOpen;
-      advancedFields.style.display = isAdvancedOpen ? "block" : "none";
-      toggleAdvancedBtn.textContent = isAdvancedOpen ? "收合設定 ▲" : "進階設定 ▼";
     });
 
     const topicFromQuery = getTopicFromQuery();
