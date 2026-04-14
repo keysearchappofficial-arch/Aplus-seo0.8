@@ -661,7 +661,6 @@
   <script src="./assets/js/layout.js"></script>
 <script>
 (function () {
-
   const API_BASE =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
@@ -672,14 +671,46 @@
   const CTA_TRIGGER_COUNT = 4;
 
   const modal = document.getElementById("articleModal");
+  const openBtns = [
+    document.getElementById("openArticleModalBtn"),
+    document.getElementById("openArticleModalBtnBottom")
+  ].filter(Boolean);
+
+  const closeBtn = document.getElementById("closeArticleModalBtn");
   const form = document.getElementById("articleGenerateForm");
+  const resetBtn = document.getElementById("resetArticleBtn");
   const submitBtn = document.getElementById("submitArticleBtn");
   const loadingBox = document.getElementById("articleLoading");
   const errorBox = document.getElementById("articleError");
   const previewBox = document.getElementById("articlePreview");
   const topicInput = document.getElementById("articleTopic");
+  const toggleAdvancedBtn = document.getElementById("toggleAdvancedBtn");
+  const advancedFields = document.getElementById("advancedFields");
 
-  // ===== 使用次數 =====
+  let isAdvancedOpen = false;
+
+  if (!modal || !form || !submitBtn || !loadingBox || !errorBox || !previewBox) {
+    console.error("[seo-content] 找不到必要 DOM 元素");
+    return;
+  }
+
+  function openModal() {
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+
+    const firstField = form.querySelector("input, textarea, select");
+    if (firstField) {
+      setTimeout(() => firstField.focus(), 50);
+    }
+  }
+
+  function closeModal() {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
   function getTodayKey() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -711,78 +742,279 @@
     el.id = "articlePopup";
 
     el.innerHTML = `
-      <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
-        <div style="background:#fff;padding:28px;border-radius:20px;max-width:420px;text-align:center;">
-          <h3>你已多次體驗 AI 產文</h3>
-          <p style="color:#555;">
-            想持續產文與 SEO 成長，可以聯繫我們。
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;">
+        <div style="background:#fff;padding:28px;border-radius:20px;max-width:420px;width:100%;text-align:center;">
+          <h3 style="margin:0 0 10px;">你已多次體驗 AI 產文</h3>
+          <p style="color:#555;line-height:1.8;margin:0;">
+            如果你想持續產文、做 SEO 流量成長，
+            我們可以幫你建立完整系統。
           </p>
-          <div style="margin-top:20px;">
+
+          <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
             <a href="./contact.html" class="btn btn--primary">聯繫我們</a>
+            <button type="button" id="closeArticlePopupBtn" class="btn btn--ghost">稍後再看</button>
           </div>
         </div>
       </div>
     `;
 
     document.body.appendChild(el);
+
+    document.getElementById("closeArticlePopupBtn")?.addEventListener("click", () => {
+      el.remove();
+    });
   }
 
-  // ===== UI =====
   function setLoading(v) {
     loadingBox.classList.toggle("is-show", v);
     submitBtn.disabled = v;
+    submitBtn.textContent = v ? "生成中..." : "開始生成";
   }
 
-  function setError(msg) {
+  function setError(msg = "") {
     errorBox.textContent = msg;
     errorBox.classList.toggle("is-show", !!msg);
   }
 
-  function renderBody(text = "") {
-    return text
+  function escapeHtml(text) {
+    return String(text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatInline(text = "") {
+    return escapeHtml(text).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  }
+
+  function renderBody(content = "") {
+    if (!content) return "<p>目前沒有可顯示的文章內容。</p>";
+
+    const lines = String(content)
       .split("\n")
-      .map(line => {
-        if (line.startsWith("## ")) {
-          return `<h2>${line.replace("## ", "")}</h2>`;
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    let html = "";
+    let inList = false;
+
+    for (const line of lines) {
+      if (line.startsWith("## ")) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
         }
-        if (line.startsWith("### ")) {
-          return `<h3>${line.replace("### ", "")}</h3>`;
+        html += `<h2>${formatInline(line.replace(/^## /, ""))}</h2>`;
+        continue;
+      }
+
+      if (line.startsWith("### ")) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
         }
-        if (line.startsWith("- ")) {
-          return `<li>${line.replace("- ", "")}</li>`;
+        html += `<h3>${formatInline(line.replace(/^### /, ""))}</h3>`;
+        continue;
+      }
+
+      if (line.startsWith("- ") || line.startsWith("* ")) {
+        if (!inList) {
+          html += "<ul>";
+          inList = true;
         }
-        return `<p>${line}</p>`;
-      })
-      .join("");
+        html += `<li>${formatInline(line.replace(/^[-*] /, ""))}</li>`;
+        continue;
+      }
+
+      if (inList) {
+        html += "</ul>";
+        inList = false;
+      }
+
+      html += `<p>${formatInline(line)}</p>`;
+    }
+
+    if (inList) html += "</ul>";
+
+    return html;
   }
 
   function renderArticle(article) {
+    if (!article) {
+      previewBox.innerHTML = `
+        <div class="article-preview__empty">
+          目前沒有可顯示的文章內容。
+        </div>
+      `;
+      return;
+    }
+
+    const title = article.title || "未命名文章";
+    const summary = article.summary || "";
+    const body = article.body || "";
+    const seoTitle = article.seoTitle || "";
+    const seoDescription = article.seoDescription || "";
+
     previewBox.innerHTML = `
-      <h1>${article.title}</h1>
-      <p>${article.summary}</p>
-      <div>${renderBody(article.body)}</div>
+      <div class="article-preview__shell">
+        <section class="article-output-card">
+          <div class="article-output-card__head">文章預覽</div>
+          <div class="article-output-card__body">
+            <div class="article-meta">
+              <span class="article-badge">AI 文章</span>
+              <span class="article-badge">SEO 結構化</span>
+            </div>
+            <h1 class="article-title">${escapeHtml(title)}</h1>
+            <p class="article-summary">${escapeHtml(summary)}</p>
+          </div>
+        </section>
+
+        <section class="article-output-card">
+          <div class="article-output-card__head">文章內文</div>
+          <div class="article-output-card__body">
+            <div class="article-body">
+              ${renderBody(body)}
+            </div>
+          </div>
+        </section>
+
+        <section class="article-output-card">
+          <div class="article-output-card__head">SEO 欄位</div>
+          <div class="article-output-card__body">
+            <div class="article-seo-grid">
+              <div class="article-seo-item">
+                <strong>SEO Title</strong>
+                <p>${escapeHtml(seoTitle)}</p>
+              </div>
+              <div class="article-seo-item">
+                <strong>SEO Description</strong>
+                <p>${escapeHtml(seoDescription)}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="article-actions">
+          <button type="button" class="article-mini-btn" id="copyArticleTitleBtn">複製標題</button>
+          <button type="button" class="article-mini-btn" id="copyArticleBodyBtn">複製內文</button>
+          <button type="button" class="article-mini-btn" id="copySeoBtn">複製 SEO 欄位</button>
+        </section>
+      </div>
     `;
+
+    const copyTitleBtn = document.getElementById("copyArticleTitleBtn");
+    const copyBodyBtn = document.getElementById("copyArticleBodyBtn");
+    const copySeoBtn = document.getElementById("copySeoBtn");
+
+    copyTitleBtn?.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(title);
+        copyTitleBtn.textContent = "已複製";
+        setTimeout(() => {
+          copyTitleBtn.textContent = "複製標題";
+        }, 1200);
+      } catch (error) {
+        console.error("複製標題失敗：", error);
+      }
+    });
+
+    copyBodyBtn?.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(body);
+        copyBodyBtn.textContent = "已複製";
+        setTimeout(() => {
+          copyBodyBtn.textContent = "複製內文";
+        }, 1200);
+      } catch (error) {
+        console.error("複製內文失敗：", error);
+      }
+    });
+
+    copySeoBtn?.addEventListener("click", async () => {
+      try {
+        const seoText = `SEO Title: ${seoTitle}\nSEO Description: ${seoDescription}`;
+        await navigator.clipboard.writeText(seoText);
+        copySeoBtn.textContent = "已複製";
+        setTimeout(() => {
+          copySeoBtn.textContent = "複製 SEO 欄位";
+        }, 1200);
+      } catch (error) {
+        console.error("複製 SEO 欄位失敗：", error);
+      }
+    });
   }
 
-  // ===== API =====
   async function generate(payload) {
     const res = await fetch(`${API_BASE}/api/ollama/article`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
-        // ❌ 移除 API KEY
       },
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error("API 回傳格式錯誤");
+    }
 
-    if (!res.ok) throw new Error(data.message || "產文失敗");
+    if (!res.ok) {
+      throw new Error(data?.message || "產文失敗");
+    }
 
     return data;
   }
 
-  // ===== submit =====
+  openBtns.forEach(btn => {
+    btn.addEventListener("click", openModal);
+  });
+
+  closeBtn?.addEventListener("click", closeModal);
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("is-open")) {
+      closeModal();
+    }
+  });
+
+  toggleAdvancedBtn?.addEventListener("click", () => {
+    isAdvancedOpen = !isAdvancedOpen;
+    advancedFields.style.display = isAdvancedOpen ? "block" : "none";
+    toggleAdvancedBtn.textContent = isAdvancedOpen ? "收合設定 ▲" : "進階設定 ▼";
+  });
+
+  resetBtn?.addEventListener("click", () => {
+    form.reset();
+    setError("");
+
+    advancedFields.style.display = "none";
+    isAdvancedOpen = false;
+    if (toggleAdvancedBtn) {
+      toggleAdvancedBtn.textContent = "進階設定 ▼";
+    }
+
+    const topicFromQuery = new URLSearchParams(location.search).get("topic");
+    if (topicFromQuery && topicInput) {
+      topicInput.value = topicFromQuery;
+    }
+
+    previewBox.innerHTML = `
+      <div class="article-preview__empty">
+        輸入文章主題後，點擊「開始生成」，這裡就會顯示完整文章預覽、SEO Title 與 SEO Description。
+      </div>
+    `;
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -792,47 +1024,39 @@
     const fd = new FormData(form);
 
     const payload = {
-      topic: fd.get("topic"),
-      industry: fd.get("industry"),
-      service: fd.get("service"),
-      region: fd.get("region"),
-      audience: fd.get("audience"),
-      tone: fd.get("tone"),
-      length: fd.get("length"),
-      keywords: fd.get("keywords")
+      topic: fd.get("topic")?.toString().trim(),
+      industry: fd.get("industry")?.toString().trim(),
+      service: fd.get("service")?.toString().trim(),
+      region: fd.get("region")?.toString().trim(),
+      audience: fd.get("audience")?.toString().trim(),
+      tone: fd.get("tone")?.toString().trim(),
+      length: fd.get("length")?.toString().trim(),
+      keywords: fd.get("keywords")?.toString().trim()
     };
 
     try {
       const result = await generate(payload);
-
       renderArticle(result.article);
 
       const count = increaseUsage();
-
       if (count >= CTA_TRIGGER_COUNT) {
         setTimeout(showPopup, 400);
       }
-
     } catch (err) {
-      setError(err.message);
+      console.error("[seo-content] generate error:", err);
+      setError(err.message || "產文失敗");
     } finally {
       setLoading(false);
     }
   });
 
-  // ===== 帶入 topic =====
   const topicFromQuery = new URLSearchParams(location.search).get("topic");
-
   if (topicFromQuery && topicInput) {
     topicInput.value = topicFromQuery;
-
-    // 🔥 自動打開 modal（關鍵）
-    if (modal) {
-      modal.classList.add("is-open");
-      document.body.style.overflow = "hidden";
-    }
+    setTimeout(() => {
+      openModal();
+    }, 250);
   }
-
 })();
 </script>
 </body>
