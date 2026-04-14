@@ -538,8 +538,6 @@
       ? "http://localhost:3000"
       : "https://api.keysearch-app.com";
 
-  console.log("API_BASE =", API_BASE);
-
   const modal = document.getElementById("topicModal");
   const openBtns = [
     document.getElementById("openTopicModalBtn"),
@@ -564,9 +562,9 @@
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
 
-    const firstInput = form.querySelector("input, textarea, select");
-    if (firstInput) {
-      setTimeout(() => firstInput.focus(), 50);
+    const firstField = form.querySelector("input, textarea, select");
+    if (firstField) {
+      setTimeout(() => firstField.focus(), 50);
     }
   }
 
@@ -654,17 +652,17 @@
     try {
       result = await response.json();
     } catch {
-      throw new Error("API 回傳格式錯誤");
+      throw new Error("API 回傳格式錯誤，請稍後再試。");
     }
 
     if (!response.ok) {
-      throw new Error(result?.message || "產題失敗");
+      throw new Error(result?.message || "產題失敗，請稍後再試。");
     }
 
     return result;
   }
 
-  openBtns.forEach(btn => {
+  openBtns.forEach((btn) => {
     btn.addEventListener("click", openModal);
   });
 
@@ -701,7 +699,6 @@
     setLoading(true);
 
     const formData = new FormData(form);
-
     const payload = {
       industry: formData.get("industry")?.toString().trim(),
       service: formData.get("service")?.toString().trim(),
@@ -718,7 +715,7 @@
       renderTopics(result.topics || []);
     } catch (error) {
       console.error("[topic-generator] generate error:", error);
-      setError(error.message || "產題失敗");
+      setError(error.message || "產題失敗，請稍後再試。");
     } finally {
       setLoading(false);
     }
@@ -748,16 +745,16 @@
 
     if (articleBtn) {
       const topic = articleBtn.getAttribute("data-fill-article") || "";
-
-      if (!topic) {
-        return;
-      }
+      if (!topic) return;
 
       closeModal();
       window.location.href = `./seo-content.html?topic=${encodeURIComponent(topic)}`;
     }
   });
 
+  window.addEventListener("beforeunload", () => {
+    if (form) form.reset();
+  });
 })();
 </script>
 </body>
