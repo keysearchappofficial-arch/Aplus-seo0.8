@@ -532,8 +532,6 @@
   <script src="./assets/js/layout.js"></script>
   <script>
 (function () {
-
-  // ✅ 自動判斷環境（本機 / 正式）
   const API_BASE =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
@@ -556,13 +554,25 @@
   const errorBox = document.getElementById("topicError");
   const resultsBox = document.getElementById("topicResults");
 
+  if (!modal || !form || !submitBtn || !loadingBox || !errorBox || !resultsBox) {
+    console.error("[topic-generator] 找不到必要 DOM 元素");
+    return;
+  }
+
   function openModal() {
     modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+
+    const firstInput = form.querySelector("input, textarea, select");
+    if (firstInput) {
+      setTimeout(() => firstInput.focus(), 50);
+    }
   }
 
   function closeModal() {
     modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
   }
 
@@ -581,12 +591,18 @@
     return String(text || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function renderTopics(topics) {
     if (!Array.isArray(topics) || topics.length === 0) {
-      resultsBox.innerHTML = `<div class="topic-results__empty">沒有產出主題</div>`;
+      resultsBox.innerHTML = `
+        <div class="topic-results__empty">
+          這次沒有產出主題，請調整條件後再試一次。
+        </div>
+      `;
       return;
     }
 
@@ -596,16 +612,28 @@
           <article class="topic-card">
             <div class="topic-card__top">
               <span class="topic-badge">#${index + 1}</span>
-              <span class="topic-badge">${escapeHtml(item.category)}</span>
-              <span class="topic-badge">${escapeHtml(item.intent)}</span>
+              <span class="topic-badge">${escapeHtml(item.category || "未分類")}</span>
+              <span class="topic-badge">${escapeHtml(item.intent || "資訊型")}</span>
             </div>
 
-            <h3>${escapeHtml(item.title)}</h3>
-            <p>${escapeHtml(item.reason)}</p>
+            <h3>${escapeHtml(item.title || "")}</h3>
+            <p>${escapeHtml(item.reason || "適合作為 SEO 內容主題，能延伸成文章與關鍵字頁。")}</p>
 
             <div class="topic-card__actions">
-              <button class="topic-mini-btn" data-copy="${escapeHtml(item.title)}">複製題目</button>
-              <button class="topic-mini-btn" data-fill-article="${escapeHtml(item.title)}">帶去產文</button>
+              <button
+                type="button"
+                class="topic-mini-btn"
+                data-copy="${escapeHtml(item.title || "")}"
+              >
+                複製題目
+              </button>
+              <button
+                type="button"
+                class="topic-mini-btn"
+                data-fill-article="${escapeHtml(item.title || "")}"
+              >
+                帶去產文
+              </button>
             </div>
           </article>
         `).join("")}
@@ -618,7 +646,6 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json"
-        // ❌ 已移除 API KEY
       },
       body: JSON.stringify(payload)
     });
@@ -637,8 +664,35 @@
     return result;
   }
 
-  openBtns.forEach(btn => btn?.addEventListener("click", openModal));
-  closeBtn?.addEventListener("click", closeModal);
+  openBtns.forEach(btn => {
+    btn.addEventListener("click", openModal);
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeModal);
+  }
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && modal.classList.contains("is-open")) {
+      closeModal();
+    }
+  });
+
+  resetBtn?.addEventListener("click", () => {
+    form.reset();
+    setError("");
+    resultsBox.innerHTML = `
+      <div class="topic-results__empty">
+        輸入你的產業、服務與關鍵字後，點擊「開始生成」，這裡就會顯示 AI 幫你整理好的 SEO 主題。
+      </div>
+    `;
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -649,13 +703,13 @@
     const formData = new FormData(form);
 
     const payload = {
-      industry: formData.get("industry")?.trim(),
-      service: formData.get("service")?.trim(),
-      region: formData.get("region")?.trim(),
-      audience: formData.get("audience")?.trim(),
-      tone: formData.get("tone")?.trim(),
-      category: formData.get("category")?.trim(),
-      keywords: formData.get("keywords")?.trim(),
+      industry: formData.get("industry")?.toString().trim(),
+      service: formData.get("service")?.toString().trim(),
+      region: formData.get("region")?.toString().trim(),
+      audience: formData.get("audience")?.toString().trim(),
+      tone: formData.get("tone")?.toString().trim(),
+      category: formData.get("category")?.toString().trim(),
+      keywords: formData.get("keywords")?.toString().trim(),
       count: Number(formData.get("count") || 10)
     };
 
@@ -663,9 +717,44 @@
       const result = await generateTopics(payload);
       renderTopics(result.topics || []);
     } catch (error) {
-      setError(error.message);
+      console.error("[topic-generator] generate error:", error);
+      setError(error.message || "產題失敗");
     } finally {
       setLoading(false);
+    }
+  });
+
+  resultsBox.addEventListener("click", async (event) => {
+    const copyBtn = event.target.closest("[data-copy]");
+    const articleBtn = event.target.closest("[data-fill-article]");
+
+    if (copyBtn) {
+      const text = copyBtn.getAttribute("data-copy") || "";
+
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "已複製";
+
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 1000);
+      } catch (error) {
+        console.error("複製失敗：", error);
+      }
+
+      return;
+    }
+
+    if (articleBtn) {
+      const topic = articleBtn.getAttribute("data-fill-article") || "";
+
+      if (!topic) {
+        return;
+      }
+
+      closeModal();
+      window.location.href = `./seo-content.html?topic=${encodeURIComponent(topic)}`;
     }
   });
 
